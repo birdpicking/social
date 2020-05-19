@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+      <style>
+        article{margin: 10px;}
+        p{
+        text-indent: 2em; /*em是相对单位，2em即现在一个字大小的两倍*/
+        font-size: 18px;
+        }
+        div{
+          width: 100%;
+          height:50px;
+        }
+      </style>
+  </head>
+  <body>
+      <header class="aui-bar aui-bar-nav" id="aui-header">
+          <a class="aui-btn aui-pull-left" tapmode onclick="info()">
+              <span class="aui-iconfont aui-icon-info"></span>
+          </a>
+          <div class="aui-title">技术支持</div>
+          <a class="aui-btn aui-pull-right" tapmode onclick="back()">
+              <span class="aui-iconfont aui-icon-right"></span>
+          </a>
+      </header>
+      <article>
+        <p>本软件为方便用户日常工作和联系的信息一体化平台，作为微信和邮件的融合体，尝试满足实现用户的多元化需求。</p>
+        <p>版本1.0</p>
+        <p>软件实现群组分级功能更加贴近现实生活。实现即时邮件和文章随笔以及数据仓库功能。具体请看使用说明。</p>
+        <p>后续功能：1、加入多记录分页；2、实现电脑版同步应用</p>
+        <div></div>
+        <p></p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;编写于2019年9月</p>
+      </article>
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript">
+      apiready = function(){
+          api.parseTapmode();
+          var header = $api.byId('aui-header');
+          $api.fixStatusBar(header);
+      };
+      function back(){
+          api.closeWin({
+          });
+      }
+      function info() {
+
+          api.confirm({
+              title: '关于',
+              msg: '制作：刘晓钢\n电话：18632355013',
+              buttons: ['确定', '取消']
+          }, function(ret, err) {
+              var index = ret.buttonIndex;
+
+          });
+
+      }
+  </script>
+  </html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <title>title</title>
+      <link rel="stylesheet" type="text/css" href="../css/api.css"/>
+      <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+      <style>
+
+      </style>
+  </head>
+  <body>
+      <ul class="aui-list aui-form-list">
+          <li class="aui-list-item">
+              <div class="aui-list-item-label-icon" tapmode>
+                  <i class="aui-iconfont aui-icon-home"></i>
+              </div>
+              <div class="aui-list-item-inner" tapmode>
+                  随笔标题
+              </div>
+              <div class="aui-list-item-label-icon" tapmode>
+                  <i id='icon' class="aui-iconfont aui-icon-close"></i>
+              </div>
+          </li>
+      </ul>
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript" src="../script/APICloud-rest.js"></script>
+  <script type="text/javascript" src="../script/SHA1.js"></script>
+  <script type="text/javascript">
+      var el,html;
+      var myId=$api.getStorage('myId');
+      var myKey=$api.getStorage('myKey');
+      var client = new Resource(myId, myKey);
+      var _Note = client.Factory("Note");
+      var param;
+      var op,code;
+      apiready = function(){
+          el=$api.dom('.aui-list')
+          var eli=$api.dom(el,'.aui-list-item');
+          html=eli.outerHTML;
+          $api.remove(eli);
+          param=api.pageParam;
+
+          NoteList();
+      };
+      function lose(el,data) {
+          api.confirm({
+              title: '提醒',
+              msg: '你要删除'+data.Name+'记录吗？',
+              buttons: ['确定', '取消']
+          }, function(ret, err) {
+              var index = ret.buttonIndex;
+              if(index==1){
+                  $api.remove(el.parentNode);
+                  _Note.delete({"_id":ret.id},function(ret,err){
+                      if(err){
+                          //处理错误 err
+                      }else{
+                          //处理数据 ret
+                      }
+                  });
+              }
+          });
+      }
+      function NoteList() {
+        op=param.op;
+        //0为群组随笔，1为个人随笔
+        code=param.code;  //群组名称
+        data=param.data;
+        var elis=$api.domAll(el,'.aui-list-item');
+        for(i=0;i<elis.length;i++){
+          $api.remove(elis[i]);
+        }
+
+        var userInfo=$api.getStorage('userInfo');
+        if(!userInfo){
+          api.toast({
+              msg:'用户未登录！',
+              duration: 2000,
+              location: 'middle'
+          });
+          setTimeout(back, 2000);
+          return;
+        }
+        var id='';
+        if(op==1){
+          id=userInfo.id;
+        }
+        _Note.query({
+            filter:{
+                fields:["id", "Name"],
+                where:{"Code":code,"Sign":{like:id}}
+            }
+        }, function(ret,err){
+            if(err){
+                console.log(JSON.stringify( err ));
+            }else{
+                for(i=0;i<ret.length;i++){
+                    $api.append(el,html);
+                    eli=$api.last(el,'.aui-list-item');
+                    elit=$api.dom(eli,'.aui-list-item-inner');
+                    $api.text(elit,ret[i].Name);
+                    elit.index=i;
+                    elit.onclick=function () {
+                        api.openWin({
+                            name: 'note',
+                            url: 'Note.html',
+                            pageParam: {
+                                op: op,
+                                data: ret[this.index]
+                            }
+                        });
+                    }
+                    elili=$api.last(eli,'.aui-list-item-label-icon');
+                    elili.index=i;
+                    elili.onclick=function () {
+                        lose(this,ret[this.index]);
+                    }
+                }
+            }
+        });
+      }
+  </script>
+  </html>

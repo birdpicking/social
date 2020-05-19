@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <title>title</title>
+      <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+      <style>
+          .aui-bar-nav{background: #393;}
+
+          .box li h2{width: 100%;
+              text-align: center;border-bottom: 1px solid #eee; }
+          .box li:hover .aui-bar-nav{background: #9c9;}
+          .box li:hover .txt{height: 100%;transition: all 1s;}
+          .txt{overflow: hidden; height: 0;width: 100%;background:#fff;}
+          .aui-margin-l-5{font-size:120%;}
+      </style>
+  </head>
+  <body>
+
+        <ul class="box">
+            <li>
+                <h2>
+                    <div class="aui-bar aui-bar-nav">
+                        <div class="aui-pull-left">
+                            <span class="aui-iconfont aui-icon-home"></span>
+                        </div>
+                        <div class="aui-title">群组</div>
+                        <div class="aui-pull-right  aui-btn">
+                            <input type="checkbox" class="aui-switch">
+                        </div>
+                    </div>
+
+                </h2>
+
+            </li>
+
+        </ul>
+
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript" src="../script/APICloud-rest.js"></script>
+  <script type="text/javascript" src="../script/SHA1.js"></script>
+  <script type="text/javascript">
+      var el,html;
+      var myId=$api.getStorage('myId');
+      var myKey=$api.getStorage('myKey');
+      var client = new Resource(myId, myKey);
+      var _Gear = client.Factory("Gear");
+      var userInfo,unitpick;
+      var param,op;
+      apiready = function(){
+          param=api.pageParam;
+          op=param.op;
+          userInfo=$api.getStorage('userInfo');
+          if(!userInfo){
+              api.toast({
+                  msg: '用户未登录！',
+                  duration: 2000,
+                  location: 'middle'
+              });
+              return;
+          }
+          el=$api.dom('ul');
+          eli=$api.dom(el,'li');
+
+          html=eli.outerHTML;
+          $api.remove(eli);
+          unitpick=$api.getStorage('unitPick');
+          if(unitpick){
+                $api.html(el,unitpick);
+          }
+          else{
+              init();
+          }
+          api.setRefreshHeaderInfo({
+              loadingImg: 'widget://image/loading_more.gif',
+              bgColor: '#ccc',
+              textColor: '#fff',
+              textDown: '下拉刷新...',
+              textUp: '松开刷新...'
+          }, function(ret, err) {
+              //在这里从服务器加载数据，加载完成后调用api.refreshHeaderLoadDone()方法恢复组件到默认状态
+              $api.html(el,'');
+              init();
+              api.refreshHeaderLoadDone();
+              $api.setStorage('unitPick',null);
+          });
+      };
+      function pick() {
+          var boxs=$api.domAll('input[type=checkbox]:checked');
+          var objs = '';　
+          for(i=0;i<boxs.length;i++){
+              box=boxs[i];
+              objs += ','+$api.val(box);
+          }
+          if(objs.length>0)
+            objs=objs.substr(1);
+          if(!unitpick){
+              $api.setStorage('unitPick',$api.html(el));
+          }
+          api.sendEvent({
+              name: 'pickunit',  //Mode_Frame
+              extra: {op:op,objs:objs}
+          });
+          api.closeWin({
+          });
+      }
+      function init() {
+          var user=userInfo.username;
+          _Gear.query({
+              filter:{
+                  order: "sign ASC",   //ASC|DESC
+                  fields:["Code","Sign"],
+                  where:{User: user}
+              }
+          }, function(ret,err){
+              if(err){
+                  console.log(JSON.stringify( err ));
+              }else{
+                  //console.log(JSON.stringify( ret ));
+                  for(i=0;i<ret.length;i++){
+                      $api.append(el, html);
+                      eli=$api.last(el,'li');
+                      ele=$api.dom(eli,'.aui-title');
+                      $api.html(ele,ret[i].Code);
+                      ele=$api.dom(eli,'.aui-switch');
+                      $api.val(ele, ret[i].Code);
+                      sign=ret[i].Sign;  //标记：0—管理员；1—成员；2—收藏；3—关注
+                      if(sign==2){
+                          ele=$api.dom(eli,'.aui-iconfont');
+                          $api.removeCls(ele,'aui-icon-home');
+                          $api.addCls(ele,'aui-icon-like');
+                      }
+                      if(sign==3){
+                          ele=$api.dom(eli,'.aui-iconfont');
+                          $api.removeCls(ele,'aui-icon-home');
+                          $api.addCls(ele,'aui-icon-flag');
+                      }
+                  }
+              }
+          });
+
+      }
+
+  </script>
+  </html>

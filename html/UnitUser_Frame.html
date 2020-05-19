@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <title>title</title>
+      <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+      <style>
+          .aui-info {background-color: #fff;border-style:solid; border-width:1px;border-color:#fff;border-bottom-color:#eee;}
+      </style>
+  </head>
+  <body>
+
+      <div class="aui-info">
+          <div class="aui-info-item">
+              <div class="aui-list-item-label-icon" tapmode>
+                  <i class="aui-iconfont"></i>
+              </div>
+              <span class="aui-margin-l-5">AUI</span>
+          </div>
+          <div class="aui-info-item">2018</div>
+      </div>
+
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript" src="../script/APICloud-rest.js"></script>
+  <script type="text/javascript" src="../script/SHA1.js"></script>
+  <script type="text/javascript">
+      var el,els,eli,html;
+      var myId=$api.getStorage('myId');
+      var myKey=$api.getStorage('myKey');
+      var client = new Resource(myId, myKey);
+      var _Gear = client.Factory("Gear");
+      apiready = function(){
+          el=$api.dom('.aui-info')
+          html=el.outerHTML;
+          //$api.remove(el);
+          var param=api.pageParam;
+          var op=param.op;
+          var data=param.data;
+          var code=data.Code;
+          /*
+          var elis=$api.domAll(el,'.aui-list-item');
+          for(i=0;i<elis.length;i++){
+            $api.remove(elis[i]);
+          }
+          */
+          var userInfo=$api.getStorage('userInfo');
+          var user=userInfo.username;
+          //console.log(op);
+          if(op==1){
+            op={"lte":1}
+          }
+          _Gear.query({
+              filter:{
+                  limit:10,
+                  skip:0,
+                  fields:["id", "Name", "Keys","Sign"],
+                  where:{"Code":code,"Sign":op}
+              }
+          }, function(ret,err){
+              if(err){
+                  console.log(JSON.stringify( err ));
+              }else{
+                  //console.log(JSON.stringify( ret ));
+                  for(i=0;i<ret.length;i++){
+                      $api.after(el, html);
+                      els=$api.domAll('.aui-info');
+                      el=els[els.length-1];
+                      eli=$api.dom(el,'.aui-margin-l-5');
+                      $api.html(eli,ret[i].Name);
+                      eli=$api.last(el,'.aui-info-item');
+                      $api.html(eli,ret[i].Keys);
+                      eli=$api.dom(el,'.aui-iconfont');
+                      if(ret[i].Sign==0){
+                          $api.addCls(eli, 'aui-icon-gear');
+                      }
+                      if(ret[i].Sign==1){
+                          $api.addCls(eli, 'aui-icon-my');
+                      }
+                      if(ret[i].Sign==2){
+                          $api.addCls(eli, 'aui-icon-star');
+                      }
+                      if(ret[i].Sign==3){
+                          $api.addCls(eli, 'aui-icon-flag');
+                      }
+                  }
+                  el=$api.dom('.aui-info')
+                  $api.remove(el);
+              }
+          });
+      };
+      function more() {
+        alert('更多');
+      }
+  </script>
+  </html>

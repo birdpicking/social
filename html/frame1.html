@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+      <style>
+
+      </style>
+  </head>
+  <body>
+      <ul class="aui-list aui-form-list">
+          <li class="aui-list-item">
+              <div class="aui-list-item-label-icon" tapmode>
+                  <i class="aui-iconfont aui-icon-image"></i>
+              </div>
+              <div class="aui-list-item-inner" tapmode>
+                  随笔
+              </div>
+              <div class="aui-list-item-label-icon" tapmode>
+                  <i id='icon' class="aui-iconfont aui-icon-right"></i>
+              </div>
+          </li>
+      </ul>
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript" src="../script/APICloud-rest.js"></script>
+  <script type="text/javascript" src="../script/SHA1.js"></script>
+  <script type="text/javascript">
+      var el,html,ell;
+      var myId=$api.getStorage('myId');
+      var myKey=$api.getStorage('myKey');
+      var myCode = $api.getStorage('myCode');
+      var client = new Resource(myId, myKey);
+      var _Note = client.Factory("Note");
+      var userInfo=$api.getStorage('userInfo');
+
+      var el,html,tag,txt='';
+      apiready = function(){
+          tag=$api.getStorage('notetag');
+          api.parseTapmode();
+          el=$api.dom('.aui-list');
+          html=$api.html(el);
+          eli=$api.dom(el,'.aui-list-item');
+          $api.remove(eli);
+          init();
+          api.setRefreshHeaderInfo({
+              loadingImg: 'widget://image/loading_more.gif',
+              bgColor: '#ccc',
+              textColor: '#fff',
+              textDown: '下拉刷新...',
+              textUp: '松开刷新...'
+          }, function(ret, err) {
+              //在这里从服务器加载数据，加载完成后调用api.refreshHeaderLoadDone()方法恢复组件到默认状态
+              init();
+              setTimeout(function() {
+                  api.refreshHeaderLoadDone()
+              }, 1000);
+          });
+      };
+      function NoteTag(val){
+          tag = val;
+          init();
+      }
+
+      function find() {
+          api.prompt({
+              title:'查询',
+              msg:'随笔主题',
+              buttons: ['确定', '取消']
+          }, function(ret, err) {
+              var index = ret.buttonIndex;
+              if(index==1){
+                  txt = ret.text;
+                  NoteList();
+              }
+          });
+      }
+      function init(){
+        var code = $api.getStorage('myCode');
+        var sign='',op='look';
+        if(tag==1){
+          userInfo=$api.getStorage('userInfo');
+          sign=userInfo.username;
+          op='edit';
+        }
+        _Note.query({
+            filter:{
+                fields:["id", "Name", "Keys", "Note"],
+                where:{Code: code,Sign: {like:sign},Name: {like:txt}}
+            }
+        }, function(ret,err){
+              if(err){
+                  console.log(JSON.stringify( err ));
+              }else{
+                  $api.html(el,'');
+                  //console.log(JSON.stringify( ret ));
+                  var i,eli,elia;
+                  var data=ret;
+                  for(i=0;i<data.length;i++){
+                      $api.append(el,html);
+                      eli=$api.last(el,'.aui-list-item');
+                      elia=$api.dom(eli,'.aui-list-item-inner');
+                      //alert($api.html(elia));
+                      $api.text(elia,data[i].Name);
+                      elia.index=i;
+                      elia.onclick=function () {
+                          api.openWin({
+                              name: 'note',
+                              url: 'Note.html',
+                              pageParam: {
+                                  op: op,
+                                  data: data[this.index]
+                              }
+                          });
+
+                      }
+                      elili=$api.first(eli,'.aui-list-item-label-icon');
+                      elili.index=i;
+                      elili.onclick=function () {
+                          api.toast({
+                              msg:ret[this.index].Keys+'编辑！',
+                              duration: 2000,
+                              location: 'middle'
+                          });
+
+                      }
+                      if(tag==1){
+                          elili=$api.last(eli,'.aui-list-item-label-icon');
+                          $api.html(elili,'<i class="aui-iconfont aui-icon-close"></i>');
+                          elili.index=i;
+                          elili.onclick=function () {
+                              lose(this,ret[this.index]);
+                          }
+                      }
+
+                  }
+
+              }
+          });
+      }
+      function lose(el,data) {
+          api.confirm({
+              title: '提醒',
+              msg: '你要删除['+data.Name+']随笔吗？',
+              buttons: ['确定', '取消']
+          }, function(ret, err) {
+              var index = ret.buttonIndex;
+              if(index==1){
+                  $api.remove(el.parentNode);
+                  losenote(data.id);
+              }
+          });
+      }
+      function losenote(id) {
+          _Note.delete({"_id":id},function(ret,err){
+              if(err){
+                  //处理错误 err
+              }else{
+                  //处理数据 ret
+              }
+          });
+      }
+  </script>
+  </html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <title>title</title>
+      <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+      <style>
+          .aui-img-round{width:50px;height:40px;}
+      </style>
+  </head>
+  <body>
+      <div class="aui-card-list">
+          <div class="aui-card-list-header aui-card-list-user aui-border-b">
+              <div class="aui-card-list-user-avatar">
+                  <img src="../image/logo.gif" class="aui-img-round" />
+              </div>
+              <div class="aui-card-list-user-name">
+                  <div>用户</div><small>日期</small>
+              </div>
+              <div class="aui-card-list-user-info">群组</div>
+          </div>
+          <div class="aui-card-list-content-padded">
+              问题内容
+          </div>
+
+      </div>
+
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript" src="../script/APICloud-rest.js"></script>
+  <script type="text/javascript" src="../script/SHA1.js"></script>
+  <script type="text/javascript">
+      var el,html;
+      var myId=$api.getStorage('myId');
+      var myKey=$api.getStorage('myKey');
+      var client = new Resource(myId, myKey);
+      var _Ques = client.Factory("Ques");
+      var param,op;
+      apiready = function(){
+          param=api.pageParam;
+          op=param.op;
+          el=$api.dom('.aui-card-list')
+          html=el.outerHTML;
+          $api.remove(el);
+
+          ReplList();
+      };
+
+      function ReplList() {
+        var userInfo=$api.getStorage('userInfo');
+        if(!userInfo){
+          api.toast({
+              msg:'用户未登录！',
+              duration: 2000,
+              location: 'middle'
+          });
+          setTimeout(back, 2000);
+          return;
+        }
+
+        _Ques.query({
+            filter:{
+                where:{"Keys":op}
+            }
+        }, function(ret,err){
+            if(err){
+                console.log(JSON.stringify( err ));
+            }else{
+                //console.log(JSON.stringify( ret ));
+                el=$api.dom('body');
+                for(i=0;i<ret.length;i++){
+                    //console.log(JSON.stringify( ret[i].Tags ));
+                    $api.append(el,html);
+                    eli=$api.last(el,'.aui-card-list');
+                    elia=$api.dom(eli,'.aui-card-list-user-avatar');
+                    $api.html(elia,'<img src="'+ret[i].Tags+'" class="aui-img-round" />');
+                    if(userInfo.username==ret[i].Sign){
+                        elia.index=i;
+                        elia.op=eli;
+                        elia.onclick=function () {
+                            lose(this.op,ret[this.index].id);
+                        }
+                    }
+                    elia=$api.dom(eli,'.aui-card-list-user-name');
+                    $api.html(elia,'<div>'+ret[i].Name+'</div><small>'+ret[i].createdAt.substr(0,10)+'</small>');
+                    elia=$api.dom(eli,'.aui-card-list-user-info');
+                    $api.html(elia,ret[i].Code);
+                    elia=$api.dom(eli,'.aui-card-list-content-padded');
+                    $api.html(elia,ret[i].Note);
+
+
+                }
+            }
+        });
+      }
+      function lose(eli,id){
+          api.confirm({
+              title: '提醒',
+              msg: '你要删除该回复吗？',
+              buttons: ['确定', '取消']
+          }, function(ret, err) {
+              var index = ret.buttonIndex;
+              if(index==1){
+                  $api.remove(eli);
+                  _Ques.delete({"_id":id},function(ret,err){
+                      if(err){
+                          //处理错误 err
+                      }else{
+                          //处理数据 ret
+                      }
+                  });
+              }
+          });
+      }
+  </script>
+  </html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+      <style>
+
+      </style>
+  </head>
+  <body>
+      <ul class="aui-list aui-form-list">
+          <li class="aui-list-item">
+              <div class="aui-list-item-label-icon" tapmode>
+                  <i class="aui-iconfont aui-icon-gear"></i>
+              </div>
+              <div class="aui-list-item-inner" tapmode>
+                  仓库
+              </div>
+              <div class="aui-list-item-label-icon" tapmode>
+                  <i id='icon' class="aui-iconfont aui-icon-right"></i>
+              </div>
+          </li>
+      </ul>
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript" src="../script/APICloud-rest.js"></script>
+  <script type="text/javascript" src="../script/SHA1.js"></script>
+  <script type="text/javascript">
+      var el,html;
+      var myId=$api.getStorage('myId');
+      var myKey=$api.getStorage('myKey');
+      var myCode = $api.getStorage('myCode');
+      var client = new Resource(myId, myKey);
+      var _Mode = client.Factory("Mode");
+      var _Ware = client.Factory("Ware");
+      var userInfo=$api.getStorage('userInfo');
+
+      var op,tag;
+      apiready = function(){
+          tag=$api.getStorage('hiretag');
+          api.parseTapmode();
+          el=$api.dom('.aui-list');
+          html=$api.html(el);
+          var item=$api.dom(el,'.aui-list-item');
+          $api.remove(item);
+          init();
+          api.setRefreshHeaderInfo({
+              loadingImg: 'widget://image/loading_more.gif',
+              bgColor: '#ccc',
+              textColor: '#fff',
+              textDown: '下拉刷新...',
+              textUp: '松开刷新...'
+          }, function(ret, err) {
+              //在这里从服务器加载数据，加载完成后调用api.refreshHeaderLoadDone()方法恢复组件到默认状态
+              init();
+              setTimeout(function() {
+                  api.refreshHeaderLoadDone()
+              }, 1000);
+          });
+      };
+      function HireTag(val){
+          tag = val;  //0查看1编辑
+          init();
+      }
+
+      function init(){
+          var code = $api.getStorage('myCode');
+
+          if(tag==1){
+              op='edit';
+              _Mode.query({
+                  filter:{
+                      fields:["id", "Name", "Code", "Sign", "Keys", "Tags"],
+                      where:{Sign: code}
+                  }
+              }, function(ret,err){
+                  if(err){
+                      console.log(JSON.stringify( err ));
+                  }else{
+                      $api.html(el,'');
+                      //console.log(JSON.stringify( ret ));
+                      list(ret);
+
+                  }
+              });
+          }
+          else{
+              op='look';
+              _Mode.query({
+                  filter:{
+                      fields:["id", "Name", "Code", "Sign", "Keys", "Tags"],
+                      where:{Keys: code}
+                  }
+              }, function(ret,err){
+                  if(err){
+                      console.log(JSON.stringify( err ));
+                  }else{
+                      $api.html(el,'');
+                      //console.log(JSON.stringify( ret ));
+                      list(ret);
+
+                  }
+              });
+          }
+
+      }
+      function list(data){
+          var i,eli,elia;
+          for(i=0;i<data.length;i++){
+              $api.append(el,html);
+              eli=$api.last(el,'.aui-list-item');
+              elia=$api.dom(eli,'.aui-list-item-inner');
+              $api.text(elia,data[i].Name);
+              elia.index=i;
+              elia.onclick=function () {
+                  api.openWin({
+                      name: 'warelist',
+                      url: 'WareList.html',
+                      pageParam: {
+                          op: op,
+                          data: data[this.index]
+                      }
+                  });
+
+              }
+              elili=$api.first(eli,'.aui-list-item-label-icon');
+              elili.index=i;
+              elili.onclick=function () {
+                  api.openWin({
+                      name: 'mode',
+                      url: 'Mode.html',
+                      pageParam: {
+                          op: op,
+                          data: data[this.index]
+                      }
+                  });
+
+              }
+              elili=$api.last(eli,'.aui-list-item-label-icon');
+              elili.index=i;
+              if(tag==1){
+                  $api.html(elili,'<i class="aui-iconfont aui-icon-close"></i>');
+                  elili.onclick=function () {
+                      lose(this,ret[this.index]);
+                  }
+              }
+              else{
+                  elili.onclick=function () {
+                      api.toast({
+                          msg:ret[this.index].Tags+'编辑！',
+                          duration: 2000,
+                          location: 'middle'
+                      });
+
+                  }
+              }
+          }
+      }
+      function lose(el,data) {
+          api.confirm({
+              title: '提醒',
+              msg: '你要删除['+data.Name+']仓库吗？',
+              buttons: ['确定', '取消']
+          }, function(ret, err) {
+              var index = ret.buttonIndex;
+              if(index==1){
+                  $api.remove(el.parentNode);
+                  losehire(data);
+              }
+          });
+      }
+      function losehire(data) {
+          _Ware.query({
+              filter:{
+                  fields:["id"],
+                  where:{Name: data.Name}
+              }
+          }, function(ret,err){
+
+              if(err){
+                  //处理错误 err
+              }else{
+                  //处理数据 ret
+                  for(i=0;i<ret.length;i++){
+                      _Ware.delete({"_id":ret[i].id},function(ret,err){
+                          if(err){
+                              //处理错误 err
+                          }else{
+                              //处理数据 ret
+                          }
+                      });
+                  }
+
+              }
+          });
+
+          _Mode.delete({"_id":data.id},function(ret,err){
+              if(err){
+                  //处理错误 err
+              }else{
+                  //处理数据 ret
+              }
+          });
+
+      }
+  </script>
+  </html>

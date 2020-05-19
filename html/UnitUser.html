@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <title>title</title>
+      <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+      <style>
+
+      </style>
+  </head>
+  <body>
+      <header class="aui-bar aui-bar-nav" id="aui-header">
+          <a class="aui-btn aui-pull-left" tapmode onclick="closeWin()">
+              <span class="aui-iconfont aui-icon-left"></span>
+          </a>
+          <div class="aui-title">群组用户</div>
+          <a class="aui-btn aui-pull-right" tapmode onclick="more()">
+              <span class="aui-iconfont aui-icon-more"></span>
+          </a>
+      </header>
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript">
+      var index=0;
+      apiready = function(){
+          api.parseTapmode();
+          var header = $api.byId('aui-header');
+          $api.fixStatusBar(header);
+          var headerPos = $api.offset(header);
+          var param=api.pageParam;
+          var data=param.data;
+          var code=data.Code;
+          el=$api.dom('.aui-title');
+          $api.html(el,code);
+          var NVNavigationBar = api.require('NVNavigationBar');
+          NVNavigationBar.open({
+              rect: {
+                   x: 0,
+                   y: headerPos.h,
+                   w: api.frameWidth,
+                   h: 40
+              },
+             styles: {
+                   orientation: 'horizontal',
+                   bg: '#37363b',
+                   bgAlpha: 1,
+                   font: {
+                   size: 12,
+                   sizeSelected: 14,
+                   color: '#FFFFFF',
+                   colorSelected: '#ff0000',
+                   alpha: 1
+                   },
+                   itemSize: {
+                       w: (api.frameWidth)/3,
+                       h: 44
+                   }
+             },
+              items: [{
+                 title: '成员',
+                 bg: '#37363b',
+                 bgSelected: '#fff'
+                 },{
+                    title: '收藏',
+                    bg: '#37363b',
+                    bgSelected: '#fff'
+                 },{
+                 title: '关注',
+                 bg: '#37363b',
+                 bgSelected: '#fff'
+
+                 }],
+                 selectedIndex: 1,
+                 fixedOn: api.frameName,
+                 id: 'first'
+          }, function(ret, err) {
+              //api.alert({msg:JSON.stringify(ret)});
+              api.setFrameGroupIndex({
+                  name: 'group1',
+                  index: ret.index
+              });
+              index=ret.index;
+          });
+          api.openFrameGroup({
+              name: 'group1',
+              rect: {
+                  x: 0,
+                  y: headerPos.h+40,
+                  w: 'auto',
+                  h: 'auto'
+              },
+              frames: [{
+                  name: 'cert',
+                  url: 'UnitUser_Frame.html',
+                  pageParam:{
+                    op: 1,
+                    data: data
+                  },
+                  bgColor: '#fff'
+              },{
+                  name: 'star',
+                  url: 'UnitUser_Frame.html',
+                  pageParam:{
+                    op: 2,
+                    data: data
+                  },
+                  bgColor: '#fff'
+              },{
+                  name: 'flag',
+                  url: 'UnitUser_Frame.html',
+                  pageParam:{
+                    op: 3,
+                    data: data
+                  },
+                  bgColor: '#fff'
+              }]
+          }, function(ret, err) {
+              NVNavigationBar.setSelected({
+                  id: 'first',
+                  index: ret.index,
+                  selected: true
+              }, function(ret) {
+                  //alert(JSON.stringify(ret));
+              });
+              index=ret.index;
+          });
+          /*
+          api.openFrame({
+              name: 'unituser_frame',
+              url: 'unituser_frame.html',
+              bounces: true,
+              rect: {
+                  x: 0,
+                  y: headerPos.h,
+                  w: 'auto',
+                  h: 'auto'
+              },
+              pageParam: param
+          });
+          */
+      };
+      function more(){
+        if(index==0){
+          frame='cert';
+        }
+        if(index==1){
+          frame='star';
+        }
+        if(index==2){
+          frame='flag';
+        }
+        api.execScript({
+            frameName: frame,
+            script: 'more()'
+        });
+      }
+      function closeWin(){
+          api.closeWin({
+          });
+      }
+  </script>
+  </html>

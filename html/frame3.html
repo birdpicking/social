@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+      <style>
+
+      </style>
+  </head>
+  <body>
+      <ul class="aui-list aui-form-list">
+          <li class="aui-list-item">
+              <div class="aui-list-item-label-icon" tapmode>
+                  <i class="aui-iconfont aui-icon-home"></i>
+              </div>
+              <div class="aui-list-item-inner" tapmode>
+                  群组名称
+              </div>
+              <div class="aui-list-item-label-icon" tapmode>
+                  <i id='icon' class="aui-iconfont aui-icon-close"></i>
+              </div>
+          </li>
+      </ul>
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript" src="../script/APICloud-rest.js"></script>
+  <script type="text/javascript" src="../script/SHA1.js"></script>
+  <script type="text/javascript">
+      var el,html,ell;
+      var myId=$api.getStorage('myId');
+      var myKey=$api.getStorage('myKey');
+      var myCode = $api.getStorage('myCode');
+      var client = new Resource(myId, myKey);
+      var _Gear = client.Factory("Gear");
+
+      apiready = function(){
+          el=$api.dom('.aui-list')
+          var eli=$api.dom(el,'.aui-list-item');
+          html=eli.outerHTML;
+          $api.remove(eli);
+          init();
+          api.setRefreshHeaderInfo({
+              loadingImg: 'widget://image/loading_more.gif',
+              bgColor: '#ccc',
+              textColor: '#fff',
+              textDown: '下拉刷新...',
+              textUp: '松开刷新...'
+          }, function(ret, err) {
+              //在这里从服务器加载数据，加载完成后调用api.refreshHeaderLoadDone()方法恢复组件到默认状态
+              init();
+              setTimeout(function() {
+                  api.refreshHeaderLoadDone()
+              }, 1000);
+          });
+      };
+      function hint() {
+        api.alert({
+            msg: '*点击用户群组创建群组\n*点击群组列表编辑群组\n*点击列表图标切换属性\n'+
+            '*收藏属性用于发送消息\n*关注属性用于接收消息\n*成员属性发送接收消息\n'+
+            '*成员属性需要审核通过\n'+
+            '*审核可由创建群组用户\n*也可由授权管理员操作\n*创建群组用户执行授权\n',
+        });
+
+      }
+      function find(){
+          api.openWin({
+              name: 'unitlist',
+              url: 'UnitList.html'
+
+          });
+      }
+      function lose(el,data) {
+          api.confirm({
+              title: '提醒',
+              msg: '你要退出'+data.Code+'群组吗？',
+              buttons: ['确定', '取消']
+          }, function(ret, err) {
+              var index = ret.buttonIndex;
+              if(index==1){
+                  $api.remove(el.parentNode);
+                  exitCase(data);
+              }
+          });
+      }
+      function exitCase(data) {
+          if(data.Sign!=0){
+              exitUnit(data.id);
+          }
+          else{
+              _Gear.query({
+                  filter:{
+                      fields:["id","Sign"],
+                      where:{"Code":data.Code,"id":{"ne":data.id}}
+                  }
+              }, function(ret,err){
+                  if(ret){
+                      if(ret.length>0){
+                          var sign=false;
+                          for(i=0;i<ret.length;i++){
+                              if(ret[i].Sign==0){
+                                  sign=true;
+                              }
+                          }
+                          if(sign){
+                              exitUnit(data.id);
+                          }
+                          else{
+                              api.alert({
+                                title: '群组管理员',
+                                msg: '请确认一个群组管理员后再退出'
+                              }, function(ret, err) {
+
+                              });
+                          }
+                      }
+                      else {
+                          exitUnit(data.id);
+                          loseUnit(data.Code);
+                      }
+                  }
+              });
+          }
+
+      }
+      function exitUnit(id) {
+          _Gear.delete({"_id":id},function(ret,err){
+              if(err){
+                  //处理错误 err
+              }else{
+                  //处理数据 ret
+              }
+          });
+      }
+      function loseUnit(code) {
+          var model = api.require('model');
+          model.deleteById({
+              class: 'Unit',
+              Code: code
+          }, function(ret, err){
+              if( ret ){
+                   //alert( JSON.stringify( ret ) );
+              }else{
+                   //alert( JSON.stringify( err ) );
+              }
+          });
+      }
+
+      function back() {
+          api.closeWin({
+              name: 'userunit',
+              animation: {
+                  type: 'fade'
+              }
+          });
+      };
+
+      function init() {
+        var elis=$api.domAll(el,'.aui-list-item');
+        for(i=0;i<elis.length;i++){
+          $api.remove(elis[i]);
+        }
+
+        var userInfo=$api.getStorage('userInfo');
+        if(!userInfo){
+          return;
+        }
+        var user=userInfo.username;
+
+        _Gear.query({
+            filter:{
+                fields:["id", "Name", "Code", "Keys", "Sign"],
+                where:{"User":user}
+            }
+        }, function(ret,err){
+            if(err){
+                console.log(JSON.stringify( err ));
+            }else{
+                for(i=0;i<ret.length;i++){
+                    $api.append(el,html);
+                    eli=$api.last(el,'.aui-list-item');
+                    elit=$api.dom(eli,'.aui-list-item-inner');
+                    $api.text(elit,ret[i].Code);
+                    elit.index=i;
+                    elit.onclick=function () {
+                        api.openWin({
+                            name: 'unit',
+                            url: 'Unit.html',
+                            pageParam: {
+                                op: 'edit',
+                                data: ret[this.index]
+                            }
+                        });
+                    }
+                    cart=true;  //选择一个群组作为激活状态
+                    elili=$api.first(eli,'.aui-list-item-label-icon');
+                    if(ret[i].Sign==2){
+                        cart=false;
+                        $api.html(elili,'<i class="aui-iconfont aui-icon-star"></i>');
+                    }
+
+                    if(ret[i].Sign==3){
+                        cart=false;
+                        $api.html(elili,'<i class="aui-iconfont aui-icon-flag"></i>');
+                    }
+
+                    if(myCode==ret[i].Code){
+                        $api.html(elili,'<i class="aui-iconfont aui-icon-wechat-circle"></i>');
+                        ell=elili;
+                    }
+                    if(cart){
+                        elili.index=i;
+                        elili.onclick=function () {
+                            if(myCode!=ret[this.index].Code){
+                                if(ell)
+                                    $api.html(ell,'<i class="aui-iconfont aui-icon-home"></i>');
+                                ell=this;
+                                myName=ret[this.index].Name;
+                                $api.setStorage('myName',myName);
+                                myCode=ret[this.index].Code;
+                                $api.setStorage('myCode',myCode);
+                                api.toast({
+                                    msg: '群组['+myCode+']激活!',
+                                    duration: 3000,
+                                    location: 'middle'
+                                });
+                                $api.html(this,'<i class="aui-iconfont aui-icon-wechat-circle"></i>');
+
+                            }
+
+                        }
+
+                    }
+                    elili=$api.last(eli,'.aui-list-item-label-icon');
+                    elili.index=i;
+                    elili.onclick=function () {
+                        lose(this,ret[this.index]);
+                    }
+                }
+            }
+        });
+      }
+  </script>
+  </html>

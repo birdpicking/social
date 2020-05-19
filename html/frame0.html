@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <title>title</title>
+      <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+      <style>
+      .bg0 { background-color : #DA70D6; }  //未读
+      .bg1 { background-color : #7B68EE; }  //待办
+      .bg2 { background-color : #9ACD32; }  //已办
+      .bg3 { background-color : #F5F5F5; }   //已读
+      </style>
+  </head>
+  <body>
+      <ul class="aui-list">
+          <li class="aui-list-item">
+              <div class="aui-list-item-label-icon" tapmode>
+                  <i class="aui-iconfont aui-icon-info"></i>
+              </div>
+              <div class="aui-list-item-inner">
+                  这是一个列表项
+              </div>
+              <div class="aui-list-item-label-icon" tapmode>
+                  <i class="aui-iconfont aui-icon-close"></i>
+              </div>
+          </li>
+      </ul>
+
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript" src="../script/APICloud-rest.js"></script>
+  <script type="text/javascript" src="../script/SHA1.js"></script>
+  <script type="text/javascript">
+      var el,html;
+      var userInfo;
+      var data,tag,txt;
+      var myId=$api.getStorage('myId');
+      var myKey=$api.getStorage('myKey');
+      var client = new Resource(myId, myKey);
+      var _Info = client.Factory("Info");
+      apiready = function(){
+          tag=$api.getStorage('mailtag');
+          el=$api.dom('.aui-list');
+          html=$api.html(el);
+          eli=$api.dom(el,'.aui-list-item');
+          $api.remove(eli);
+          api.setRefreshHeaderInfo({
+              loadingImg: 'widget://image/loading_more.gif',
+              bgColor: '#ccc',
+              textColor: '#fff',
+              textDown: '下拉刷新...',
+              textUp: '松开刷新...'
+          }, function(ret, err) {
+              //在这里从服务器加载数据，加载完成后调用api.refreshHeaderLoadDone()方法恢复组件到默认状态
+              init();
+              setTimeout(function() {
+                  api.refreshHeaderLoadDone()
+              }, 1000);
+          });
+          init();
+      };
+      function MailTag(val){
+          tag = val;
+          init();
+      }
+      function find() {
+          api.prompt({
+              title:'查询',
+              msg:'邮件标题',
+              buttons: ['确定', '取消']
+          }, function(ret, err) {
+              var index = ret.buttonIndex;
+              if(index==1){
+                  txt = ret.text;
+                  init();
+              }
+          });
+      }
+      function init() {
+          userInfo=$api.getStorage('userInfo');
+          if(!userInfo){
+              return;
+          }
+          if(tag==0){  //收件箱
+              pi=userInfo.username;
+              _Info.query({
+                  filter:{
+                      order: "Tail ASC,Time DESC",   //ASC|DESC
+                      where:{
+                        PI: pi
+                      }
+                  }
+              }, function(ret,err){
+                    if(ret){
+                        maillist(ret);
+                  }
+              });
+          }
+          else{
+              ip=userInfo.username;
+              _Info.query({
+                  filter:{
+                      order: "Tail,Time DESC",   //ASC|DESC
+                      where:{
+                        IP : ip
+                      }
+                  }
+              }, function(ret,err){
+                  if(ret){
+                      maillist(ret);
+                  }
+              });
+          }
+
+      }
+      function maillist(data){
+          eli=$api.dom(el,'.aui-list-item');
+          do {
+            $api.remove(eli);
+            eli=$api.dom(el,'.aui-list-item');
+          }
+          while (eli) {
+              //console.log(JSON.stringify(ret));
+              for(i=0;i<data.length;i++){
+                    $api.append(el,html);
+                    eli=$api.last(el,'.aui-list-item');
+                    ele=$api.dom(eli,'.aui-list-item-inner');
+                    tail=data[i].Tail
+                    $api.addCls(eli, 'bg'+tail);
+                    $api.text(ele,data[i].Title);
+                    ele.index=i;
+                    ele.onclick=function () {
+                        api.openWin({
+                            name: 'info',
+                            url: 'Info.html',
+                            pageParam: {
+                                op: 'look',
+                                box: tag,
+                                data: data[this.index]
+                            }
+                        });
+                    }
+                    ele=$api.first(eli,'.aui-list-item-label-icon');
+                    tick=data[i].Tick;
+                    if(tick!=''){
+                        elo=$api.dom(ele,'.aui-iconfont');
+                        $api.removeCls(elo,'aui-icon-info');
+                        $api.addCls(elo, 'aui-icon-date');
+                    }
+                    //console.log(tag);
+                    if(tag==1){
+                        ele.index=i;
+                        ele.onclick=function () {
+                            lose(this,data[this.index]);
+                        }
+                    }
+                    ele=$api.last(eli,'.aui-list-item-label-icon');
+                    elo=$api.dom(ele,'.aui-iconfont');
+                    tail=data[i].Tail;
+                    switch (tail) {
+                      case 0:  //未读
+                        $api.addCls(elo, 'aui-icon-hide');
+                        break;
+                      case 1:  //待办
+                        $api.addCls(elo, 'aui-icon-calendar');
+                        break;
+                      case 2:  //已办
+                        $api.addCls(elo, 'aui-icon-laud');
+                        break;
+                      default: //已读
+                        $api.addCls(elo, 'aui-icon-display');
+                    }
+                    if(tag==0){
+                        elo.index=i;
+                        elo.onclick=function () {
+                            deal(data[this.index]);
+                        }
+                    }
+               }
+               //console.log(el.outerHTML);
+          }
+      }
+      function deal(data) {
+          api.confirm({
+              title: '置顶',
+              msg: data.Title,
+              buttons: [ '待办', '已办', '取消']
+          }, function(ret, err) {
+              var index = ret.buttonIndex;
+              //0—未读；1—待办；2—已办；3—已读；
+              var tail;
+              if(index!=3){
+                  tail=index;
+                  _Info.save( {"_id":data.id},{
+                    Tail : tail
+                    }, function(ret,err){
+                      if(ret){
+                        refresh();
+                        api.sendEvent({
+                            name: 'sendMessage',  //main
+                            extra: {Cmd:'tail',  IP:data.IP}
+                        });
+                      }
+                  });
+
+              }
+          });
+      }
+      function lose(el,data) {
+          api.confirm({
+              title: '提醒',
+              msg: '你要删除['+data.Title+']消息吗？',
+              buttons: ['确定', '取消']
+          }, function(ret, err) {
+              var index = ret.buttonIndex;
+              if(index==1){
+                  $api.remove(el.parentNode);
+                  _Info.delete({"_id" : data.id},function(ret,err){
+                      if(err){
+                          //处理错误 err
+                      }else{
+                          //处理数据 ret
+                      }
+                  });
+
+              }
+          });
+      }
+      function refresh() {
+          init();
+      }
+
+  </script>
+  </html>

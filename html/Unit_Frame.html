@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+      <link rel="stylesheet" type="text/css" href="../css/aui.css" />
+      <style>
+          label{width:100%;}
+      </style>
+  </head>
+  <body>
+    <ul class="aui-list aui-form-list">
+        <li class="aui-list-item">
+            <div class="aui-list-item-inner">
+                <div class="aui-list-item-label-icon">
+                    <i class="aui-iconfont aui-icon-my"></i>
+                </div>
+                <div class="aui-list-item-input">
+                    <input id="name" type="text" placeholder="匿名">
+                </div>
+            </div>
+        </li>
+        <li class="aui-list-item">
+            <div class="aui-list-item-inner">
+                <div class="aui-list-item-input">
+                    <label><input class="aui-radio" type="radio" name="sign" value="1"> 成员&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+                    <label><input class="aui-radio" type="radio" name="sign" value="2"> 收藏&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+                    <label><input class="aui-radio" type="radio" name="sign" value="3"> 关注</label>
+                </div>
+            </div>
+        </li>
+        <li class="aui-list-item">
+            <div class="aui-list-item-inner">
+                <div class="aui-list-item-label-icon">
+                    <i class="aui-iconfont aui-icon-home"></i>
+                </div>
+                <div class="aui-list-item-input">
+                    <input id="code" type="text" placeholder="群（单位）">
+                </div>
+                <div class="aui-list-item-label-icon" tapmode onclick="cell()">
+                    <i class="aui-iconfont aui-icon-plus"></i>
+                </div>
+            </div>
+        </li>
+        <li class="aui-list-item">
+            <div class="aui-list-item-inner">
+                <div class="aui-list-item-label-icon">
+                    <i class="aui-iconfont aui-icon-comment"></i>
+                </div>
+                <div class="aui-list-item-input">
+                    <input id="note" type="text" placeholder="备注">
+                </div>
+            </div>
+        </li>
+    </ul>
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript" src="../script/APICloud-rest.js"></script>
+  <script type="text/javascript" src="../script/SHA1.js"></script>
+  <script type="text/javascript">
+      var myId=$api.getStorage('myId');
+      var myKey=$api.getStorage('myKey');
+      var client = new Resource(myId, myKey);
+      var _Unit = client.Factory("Unit");
+      var _Gear = client.Factory("Gear");
+      var param,op;
+      var el,eli,elis;
+      var sign=2;
+      var userInfo;
+
+      apiready = function(){
+          userInfo=$api.getStorage('userInfo');
+          param=api.pageParam;
+          op=param.op;
+
+          var radios=$api.domAll('.aui-radio');
+          if(op=='plus'){
+            el=$api.dom('.aui-list');
+            sign=0;  //0：管理员
+            elis=$api.domAll(el,'.aui-list-item');
+            $api.css(elis[1],'display:none');
+          }
+          else{
+              var data=param.data;
+              $api.val($api.byId('code'),data.Code);
+              radios[1].checked=true;
+              if(op=='edit'){
+                  sign=data.Sign;
+                  if(sign==0){
+                      radios[0].disabled=true;
+                      radios[1].disabled=true;
+                      radios[2].disabled=true;
+                  }
+                  if(sign==1){
+                    radios[0].checked=true;
+                  }
+                  if(sign==2){
+                    radios[1].checked=true;
+                  }
+                  if(sign==3){
+                    radios[2].checked=true;
+                  }
+                  $api.val($api.byId('name'),data.Name);
+
+                  _Unit.query({
+                      filter:{
+                          fields:["Code","Keys"],
+                          where:{"Code":data.Code}
+                      }
+                  }, function(ret,err){
+                      if(err){
+                          console.log(JSON.stringify( err ));
+                      }else{
+                          //console.log(JSON.stringify( ret ));
+                          $api.val($api.byId('code'),ret[0].Code);
+                          boxs(ret[0].Keys,data.Keys) ;
+                      }
+                  });
+                  if(sign!=0){
+                    $api.attr($api.byId('code'),"readOnly",true);
+                  }
+              }
+              else{
+                  boxs(data.Keys) ;
+              }
+         }
+      }
+      function boxs(data,keys) {
+          data=data.split('|');
+          var el=$api.dom('.aui-list');
+          var eli=$api.last(el,'.aui-list-item');
+          var k=0,elio;
+          var html=eli.outerHTML;
+          for(i=1;i<data.length;i++){
+              $api.append(el,html);
+              eli=$api.last(el,'.aui-list-item');
+              elio=$api.dom(eli,'.aui-list-item-inner');
+              $api.html(elio,'<label><input class="aui-checkbox" type="checkbox" name="checkbox" value="'+data[i]+'"> '+data[i]+'</label>');
+              if(keys){
+                  var arr = []; //创建一个空数组
+                  if(keys.indexOf('|') >= 0){
+                      arr=keys.split('|');
+                  }
+                  else {
+                      arr[0]=keys;
+                  }
+                  for(j=k;j<arr.length;j++){
+                      if(arr[j]==data[i]){
+                          k=j+1;
+                          elio=$api.dom(eli,'.aui-checkbox');
+                          elio.checked=true;
+                          break;
+                      }
+                  }
+
+              }
+              var elis=$api.domAll(el,'.aui-list-item');
+              let icon=$api.dom(elis[1],'.aui-list-item-label-icon');
+              if(sign==0){
+                  $api.html(icon,'<i class="aui-iconfont aui-icon-plus"></i>');
+              }
+              else {
+                    $api.remove(icon);
+              }
+              for(let i=4;i<elis.length;i++){
+                  icon=$api.dom(elis[i],'.aui-list-item-label-icon');
+                  if(sign==0){
+                      icon.onclick=function (){
+                          $api.remove(elis[i]);
+                      }
+                  }
+                  else{
+                      $api.remove(icon);
+                  }
+              }
+          }
+      }
+      function cell() {
+          api.prompt({
+              title:'组（部门）',
+              msg:'新增组名称',
+              buttons: ['确定', '取消']
+          }, function(ret, err) {
+              var index = ret.buttonIndex;
+              if(index==1){
+                  var text = ret.text;
+                  var el=$api.dom('.aui-list')
+                  var eli=$api.last(el,'.aui-list-item');
+                  var html=eli.outerHTML;
+                  $api.append(el,html);
+                  eli=$api.last(el,'.aui-list-item');
+                  //console.log(JSON.stringify( $api.html(eli) ));
+                  $api.html(eli,'<div class="aui-list-item-inner"><label><input class="aui-checkbox" type="checkbox" name="checkbox" value="'+text+'">  '+text+'</label></div><div class="aui-list-item-label-icon" tapmode><i class="aui-iconfont aui-icon-close"></i></div>');
+                  icon=$api.dom(eli,'.aui-list-item-label-icon');
+                  icon.onclick=function (){
+                      $api.remove(eli);
+                  }
+              }
+          });
+      }
+      function save(){
+          var iserr=false;
+          switch(op)
+          {
+              case 'plus':
+                  createUnit();
+                  break;
+              case 'join':
+                  joinUnit();
+                  break;
+              default:  //编辑群组
+                  var name = $api.val($api.byId('name'));
+                  if (!$api.trim(name)) {
+                      name=userInfo.username;
+                  }
+                  var code = $api.val($api.byId('code'));
+
+                  var boxs=$api.domAll('input[type=checkbox]:checked');
+                  var keys='';  //我的组信息
+                  for(i=0;i<boxs.length;i++){
+                      keys += '|'+$api.val(boxs[i]);
+                  }
+                  if(keys.length>0){
+                      keys=keys.substring(1);
+                  }
+                  if(sign!=0){
+                      var radio=$api.dom('input[type=radio]:checked');
+                      sign=Number($api.val(radio));
+                  }
+                  var user=userInfo.username;
+                  var data=param.data;
+
+                  _Gear.save({"_id":data.id},
+                  {
+                      User : user,
+                      Name : name,
+                      Code : code,
+                      Keys : keys,
+                      Sign : sign
+                  }, function(ret,err){
+                      if(err){
+                          //处理错误 err
+                      }else{
+                          if(sign!=0){
+                              api.closeWin({
+                              });
+                          }
+                          else{      //管理员群组信息改变
+                              boxs=$api.domAll('input[type=checkbox]');
+                              keys='';  //群组信息
+                              for(i=0;i<boxs.length;i++){
+                                  keys += '|'+$api.val(boxs[i]);
+                              }
+                              if(keys.length>0){
+                                  keys=keys.substring(1);
+                              }
+                              var isChange=false;
+                              if(code!=data.Code){
+                                  isChange=true;
+                                  _Gear.save({"Code":data.Code},{Code : code}, function(ret,err){
+                                  });
+                              }
+                              if(keys!=data.Keys){
+                                  isChange=true;
+                              }
+                              if(isChange){
+                                  _Unit.save({"Code":data.Code},{Code : code, Keys : keys,}, function(ret,err){
+                                      if(err){
+                                          //处理错误 err
+                                      }else{
+                                          api.sendEvent({
+                                              name: 'sendMessage',  //main
+                                              extra: {Cmd:'unit',Code:code}
+                                          });
+                                          api.closeWin({
+                                          });
+                                      }
+                                  });
+                              }
+                          }
+                      }
+                  });
+          }
+      }
+
+      function createUnit(){
+          var code = $api.val($api.byId('code'));
+          var note = $api.val($api.byId('note'));
+          if (!$api.trim(code)) {
+              api.toast({
+                  msg: '请输入群信息',
+                  duration: 2000,
+                  location: 'middle'
+              });
+              return;
+          }
+          var keys='';  //群组信息
+          var boxs=$api.domAll('input[type=checkbox]');
+          for(i=1;i<boxs.length;i++){
+              keys += '|'+$api.val(boxs[i]);
+          }
+          _Unit.query({
+              filter:{
+                  fields:["id"],
+                  where:{"Code":code}
+              }
+          }, function(ret,err){
+              if(err){  //库表不存在
+                  console.log(JSON.stringify( err ));
+              }else{
+                  if(ret.length==0){
+                      _Unit.save({
+                          "Code": code,
+                          "Note": note,
+                          "Keys": keys
+                      }, function(ret,err){
+                            joinUnit();
+                      });
+                  }
+                  else{
+                      api.toast({
+                          msg: '群名已存在',
+                          duration: 5000,
+                          location: 'middle'
+                      });
+                      return;
+                  }
+              }
+          });
+      }
+
+      function joinUnit(){
+          var name = $api.val($api.byId('name'));
+          if (!$api.trim(name)) {
+              name=userInfo.username;
+          }
+          var code = $api.val($api.byId('code'));
+          if(sign!=0){
+              var radio=$api.dom('input[type=radio]:checked');
+              sign=Number($api.val(radio));
+          }
+          var boxs=$api.domAll('input[type=checkbox]:checked');
+          var keys='';  //我的组信息
+          for(i=0;i<boxs.length;i++){
+              keys += '|'+$api.val(boxs[i]);
+          }
+          if(keys.length>0){
+              keys=keys.substring(1);
+          }
+          var user=userInfo.username;
+          _Gear.save({
+              User : user,
+              Name : name,
+              Code : code,
+              Keys : keys,
+              Sign : sign,
+          }, function(ret, err){
+              if( ret ){
+                  api.execScript({
+                      name: 'userunit', //winName
+                      frameName: 'userunit_frame',
+                      script: 'refresh()'
+                  });
+                  api.closeWin({
+                  });
+              }else{
+                   console.log(JSON.stringify( err ));
+              }
+          });
+      }
+
+  </script>
+  </html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+      <link rel="stylesheet" type="text/css" href="../css/aui.css" />
+      <style>
+          body {background-color: #fff;}
+          html {font-size: 22px;}
+          p {font-size: 18px;}
+          #keys{padding-top: 13px;}
+
+      </style>
+  </head>
+  <body>
+      <ul class="aui-list aui-form-list">
+          <li class="aui-list-item">
+              <div class="aui-list-item-inner">
+                  <div class="aui-list-item-label-icon" tapmode onclick="post()">
+                      <i class="aui-iconfont aui-icon-my"></i>
+                  </div>
+                  <div class="aui-list-item-input" tapmode onclick="postuser()">
+                      <input id="code" type="text">
+                  </div>
+
+              </div>
+          </li>
+          <li class="aui-list-item">
+              <div class="aui-list-item-inner">
+                  <div class="aui-list-item-input">
+                      <input id="name" type="text" placeholder="主题">
+                  </div>
+              </div>
+          </li>
+          <li class="aui-list-item">
+              <div class="aui-list-item-inner">
+                  <div class="aui-list-item-label-icon" tapmode onclick="warn()">
+                      <i class="aui-iconfont aui-icon-date"></i>
+                  </div>
+                  <div class="aui-list-item-input">
+                      <input id="keys" type="datetime-local">
+                  </div>
+
+              </div>
+          </li>
+      </ul>
+      <div id="note"></div>
+
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript" src="../script/exif.min.js"></script>
+  <script type="text/javascript" src="../script/zx-editor.min.js"></script>
+  <script type="text/javascript" src="../script/APICloud-rest.js"></script>
+  <script type="text/javascript" src="../script/SHA1.js"></script>
+  <script type="text/javascript">
+      var myId=$api.getStorage('myId');
+      var myKey=$api.getStorage('myKey');
+      var client = new Resource(myId, myKey);
+      function postuser() {
+          api.openWin({
+              name: 'userpost',
+              url: './UserPost.html',
+          });
+      }
+      function post() {
+          api.toast({
+              msg: '传送对象列表！',
+              duration: 2000,
+              location: 'middle'
+          });
+      }
+      function warn() {
+          api.toast({
+              msg: '事务提醒时间！',
+              duration: 2000,
+              location: 'middle'
+          });
+      }
+
+      var param;
+      var op;
+      var objs;
+      var zxEditor = new ZxEditor('#note', {
+        autoSave: 20
+      });
+      apiready = function(){
+          param=api.pageParam;
+          op=param.op;
+          //var el=$api.dom('.aui-list');
+          zxEditor.on('add-link', next => {
+            var fileBrowser = api.require('fileBrowser');
+            fileBrowser.open(function(ret) {
+                if (ret) {
+                    fileBrowser.close();
+                    //alert(JSON.stringify(ret));
+                    var File = client.Factory("file");
+                    File.save({file:{isFile:true,path:ret.url,values:{filename:ret.name}}},function(ret,err){
+                        next(ret.url, ret.name)
+                    });
+                }
+            });
+          });
+          if(op=='look'){
+              var data=param.data;
+              var box=param.box;
+              if(box==1){  //收件箱
+                  $api.val($api.byId('code'),data.Sender);
+              }
+              if(box==0){
+                  $api.val($api.byId('code'),data.Sendee);
+              }
+              $api.val($api.byId('name'),data.Title);
+              $api.attr($api.byId('name'),"readOnly",true);
+              $api.val($api.byId('keys'),data.Tick);
+              //console.log(JSON.stringify(data.Theme));
+              zxEditor.setContent(data.Theme) ;
+          }
+          else{
+
+          }
+
+          api.addEventListener({
+              name : 'postObj'
+          }, function(ret, err) {
+              objs = ret.value.objs;
+              if(objs.length>0){
+                  var postobjs=objs[0].Sendee;
+                  for(i=1;i<objs.length;i++){
+                      postobjs += '; '+objs[i].Sendee;
+                  }
+                  $api.val($api.byId('code'),postobjs);
+              }
+
+          });
+
+      };
+
+      function save(){
+          if(objs){
+              var name=$api.val($api.byId('name'));
+              if($api.trim(name)==''){
+                  api.toast({
+                      msg: '主题不可为空！',
+                      duration: 2000,
+                      location: 'middle'
+                  });
+                  return;
+              }
+              var keys=$api.val($api.byId('keys'));
+              var note=zxEditor.getContent();
+              data={
+                  Title: name,
+                  Tick: keys,
+                  Theme: note,
+                  Cmd: 'info',
+                  Objs:objs
+              }
+
+              api.sendEvent({
+                  name: 'sendMessage',  //main
+                  extra: data
+              });
+              api.closeWin({
+              });
+          }
+          else{
+              api.toast({
+                  msg: '传送对象为空！',
+                  duration: 2000,
+                  location: 'middle'
+              });
+          }
+      }
+
+      function showPopup(w,h){
+          var popUp = document.getElementById("popupcontent");
+          popUp.style.top = "200px";
+          popUp.style.left = "200px";
+          popUp.style.width = w + "px";
+          popUp.style.height = h + "px";
+
+          popUp.style.visibility = "visible";
+      }
+  </script>
+  </html>

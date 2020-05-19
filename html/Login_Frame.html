@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+      <style>
+
+          #forget{width:100%;text-align:right; display:block;height:28px;line-height:28px;padding-right: 10px;}
+      </style>
+  </head>
+  <body>
+      <ul class="aui-list aui-form-list">
+          <li class="aui-list-header">点击登录切换为注册状态</li>
+          <li class="aui-list-item">
+              <div class="aui-list-item-inner">
+                  <div class="aui-list-item-label-icon">
+                      <i class="aui-iconfont aui-icon-my"></i>
+                  </div>
+                  <div class="aui-list-item-input">
+                      <input id='user' type="text" placeholder="用户">
+                  </div>
+              </div>
+          </li>
+          <li class="aui-list-item">
+              <div class="aui-list-item-inner">
+                  <div class="aui-list-item-label-icon">
+                      <i class="aui-iconfont aui-icon-lock"></i>
+                  </div>
+                  <div class="aui-list-item-input">
+                      <input id='pass' type="password" placeholder="密码">
+                  </div>
+                  <div class="aui-list-item-label-icon" tapmode onclick="eye()">
+                      <i id='icon' class="aui-iconfont aui-icon-display"></i>
+                  </div>
+              </div>
+          </li>
+      </ul>
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript" src="../script/APICloud-rest.js"></script>
+  <script type="text/javascript" src="../script/SHA1.js"></script>
+  <script type="text/javascript">
+      var state=0;  //0——登录；1——注册
+      var myId=$api.getStorage('myId');
+      var myKey=$api.getStorage('myKey');
+      var client = new Resource(myId, myKey);
+      var _user = client.Factory("user");
+      var user,pass;
+      var now = Date.now();
+      var appKey = SHA1(myId+"UZ"+myKey+"UZ"+now)+"."+now;
+
+      apiready = function(){
+          api.parseTapmode();
+
+      };
+      function toggle(index) {
+          var el=$api.dom('.aui-list-header');
+          var html=$api.html(el);
+          var items=$api.domAll('.aui-list-item');
+          state=index;
+          if(index==1){
+              $api.html(el,'点击注册切换为登录状态');
+          }
+          else{
+              $api.html(el,'点击登录切换为注册状态');
+          }
+      }
+      function eye() {
+          var item = $api.byId('pass');
+          var icon = $api.byId('icon');
+          if($api.hasCls(icon, 'aui-icon-display')){
+              $api.removeCls(icon, 'aui-icon-display');
+              $api.addCls(icon, 'aui-icon-hide');
+              $api.attr(item, 'type', 'text');
+          }
+          else{
+              $api.removeCls(icon, 'aui-icon-hide');
+              $api.addCls(icon, 'aui-icon-display');
+              $api.attr(item, 'type', 'password');
+          }
+      }
+
+      function into() {
+          user = $api.val($api.byId('user'));
+          pass = $api.val($api.byId('pass'));
+
+          if (!$api.trim(user)) {
+              api.toast({
+                  msg: '请输入用户',
+                  duration: 1000,
+                  location: 'middle'
+              });
+              return;
+          }
+          if (!$api.trim(pass)) {
+              api.toast({
+                  msg: '请输入密码',
+                  duration: 1000,
+                  location: 'middle'
+              });
+              return;
+          }
+          var msg='';
+          if(state==0){
+            msg = '登录中...';
+          }
+          if(state==1){
+            msg = '注册中...';
+          }
+          api.showProgress({
+              title : ' ',
+              text : msg,
+              modal : true
+          });
+          switch (state) {
+              case 0:  //登录
+                  login();
+                  break;
+              case 1:  //注册
+                  logon();
+                  break;
+              default:  //忘记密码
+
+          }
+      }
+
+      function login() {
+          _user.login({
+              "username": user,
+              "password": pass
+          },function(ret,err){
+              if(ret){
+                  //console.log(JSON.stringify( ret ));
+                  //{"createdAt":"2018-04-12T10:51:12.986Z","updatedAt":"2018-04-12T10:51:12.986Z","id":"u4uIYYq7Na9DXT40HtXtkWdcEkSEGrKof0dKyu1GVNAo5QkoeHx38TRT6fQy4GC5","ttl":1209600,"userId":"5a8176a1de3646c973df450d"}
+                  //alert('登录成功！');
+                  $api.setStorage('userInfo',ret);
+                  fnGetUserInfo();
+              }
+              else {
+                  api.hideProgress();
+                  //{"msg":"{\n \"error\": {\n \"name\": \"Error\",\n \"status\": 401,\n \"message\": \"login failed\",\n \"statusCode\": 401\n }\n}","body":{"error":{"name":"Error","status":401,"message":"login failed","statusCode":401}},"statusCode":401,"code":2}
+                  _user.query({
+                      filter:{
+                          fields:["id"],
+                          where:{"username":user}
+                      }
+                  }, function(ret,err){
+                      if(ret){
+                          if(ret.length>0){
+                            alert( '密码错误！' );
+                          }
+                          else{
+                            alert( '用户不存在！' );
+                          }
+
+                      }
+                  });
+              }
+          });
+      }
+      function fnGetUserInfo() {
+        var userInfo=$api.getStorage('userInfo');
+        var author=userInfo.id;
+
+        api.ajax({
+            url: 'https://d.apicloud.com/mcm/api/user/'+userInfo.userId,
+            method: 'get',
+            headers: {
+              "X-ApiCloud-AppId":myId,
+              "X-APICloud-AppKey":appKey,
+              "authorization":author
+            }
+        }, function(ret, err) {
+            if (ret) {
+                //console.log(JSON.stringify( ret ));
+                userInfo={
+                  author:author,
+                  id:ret.id,
+                  username:ret.username,
+                  avatar:ret.avatar,
+                  im:ret.im
+                };
+                $api.setStorage('userInfo',userInfo);
+                //console.log(JSON.stringify( userInfo ));
+                var jsfun = "setHeader();";
+                api.execScript({
+                    name: 'user',
+                    frameName: 'user_frame',
+                    script: jsfun
+                });
+                //main主页面融云初始化
+                //典型发布——订阅模式，应该用事件，这样再有新功能不需要修改本页面
+                //建议学习看下【JavaScript设计模式与开发实践】这本书
+                /*
+                api.sendEvent({
+                    name: 'myEvent',
+                    extra: {
+                        key1: 'value1',
+                        key2: 'value2'
+                    }
+                });
+
+                //html页面a：
+                api.addEventListener({
+                    name: 'myEvent'
+                }, function(ret, err) {
+                    alert(JSON.stringify(ret.value));
+                });
+
+                //html页面b：
+                api.addEventListener({
+                    name: 'myEvent'
+                }, function(ret, err) {
+                    alert(JSON.stringify(ret.value));
+                });
+                //a、b页面都将收到 myEvent 事件
+                */
+                jsfun = "init();";
+                api.execScript({
+                    name: 'main',
+                    script: jsfun
+                });
+                api.execScript({
+                    name: 'main',
+                    frameName: 'frame0',
+                    script: jsfun
+                });
+                api.execScript({
+                    name: 'main',
+                    frameName: 'frame1',
+                    script: jsfun
+                });
+                api.execScript({
+                    name: 'main',
+                    frameName: 'frame2',
+                    script: jsfun
+                });
+                api.execScript({
+                    name: 'main',
+                    frameName: 'frame3',
+                    script: jsfun
+                });
+                api.hideProgress();
+                api.closeWin({
+                });
+            } else {
+                api.hideProgress();
+                api.alert({ msg: JSON.stringify(err) });
+            }
+        });
+      }
+      function logon() {
+          _user.save({
+              "username":user,
+              "password":pass,
+          }, function(ret,err){
+              if(err){
+                  api.hideProgress();
+                  console.log(JSON.stringify( err ));
+              }else{
+                  //console.log(JSON.stringify( ret ));
+                  //{"createdAt":"2018-04-13T02:15:06.778Z","updatedAt":"2018-04-13T02:15:06.778Z","id":"5ad012aa7b6fc77d6de07e84","username":"13831377315","credentials":[],"challenges":[]}
+                  $api.setStorage('userInfo',ret);
+                  fnIM();
+              }
+          });
+      }
+      function fnIM() {
+        var userInfo=$api.getStorage('userInfo');
+        //console.log(JSON.stringify( userInfo ));
+        var appSecret='4GD8t1DjLh',Nonce=Math.floor(Math.random()*1000000),Timestamp=Math.round(new Date().getTime()/1000);
+        var Signature=SHA1(appSecret+Nonce+Timestamp);
+        api.ajax({
+            url: 'http://api.cn.ronghub.com/user/getToken.json',
+            method: 'post',
+            headers: {
+              "App-Key":'0vnjpoad06vcz',
+              "Nonce":Nonce,
+              "Timestamp":Timestamp,
+              "Signature":Signature
+            },
+            data: {
+                values: {
+                    userId: userInfo.username,
+                    name: '',
+                    portraitUri:''
+                }
+            }
+        }, function(ret, err) {
+            if (ret) {
+                var imToken=ret.token;
+                _user.save({"_id":userInfo.id},{"im":imToken}, function(ret,err){
+                    if(err){
+                        console.log(JSON.stringify( err ));
+                        api.alert({ msg: JSON.stringify(err) });
+                    }else{
+                        login();
+                    }
+                });
+            } else {
+                console.log(JSON.stringify( err ));
+                api.alert({ msg: JSON.stringify(err) });
+            }
+        });
+      }
+  </script>
+  </html>

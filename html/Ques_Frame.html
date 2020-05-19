@@ -1,0 +1,117 @@
+  <!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+      <link rel="stylesheet" type="text/css" href="../css/aui.css" />
+      <style>
+          body {background-color: #fff;}
+          html {font-size: 22px;}
+          p {font-size: 18px;}
+          #keys{padding-top: 13px;}
+
+      </style>
+  </head>
+  <body>
+      <div id="note"></div>
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript" src="../script/exif.min.js"></script>
+  <script type="text/javascript" src="../script/zx-editor.min.js"></script>
+  <script type="text/javascript" src="../script/APICloud-rest.js"></script>
+  <script type="text/javascript" src="../script/SHA1.js"></script>
+  <script type="text/javascript">
+      var myId=$api.getStorage('myId');
+      var myKey=$api.getStorage('myKey');
+      var client = new Resource(myId, myKey);
+      var _Ques = client.Factory("Ques");
+      var param,op;
+      var id;
+      var objs;
+      var zxEditor = new ZxEditor('#note', {
+        autoSave: 20
+      });
+      apiready = function(){
+          param=api.pageParam;
+          op=param.op;
+          //var el=$api.dom('.aui-list');
+          zxEditor.on('add-link', next => {
+            var fileBrowser = api.require('fileBrowser');
+            fileBrowser.open(function(ret) {
+                if (ret) {
+                    fileBrowser.close();
+                    //alert(JSON.stringify(ret));
+                    var File = client.Factory("file");
+                    File.save({file:{isFile:true,path:ret.url,values:{filename:ret.name}}},function(ret,err){
+                        next(ret.url, ret.name)
+                    });
+                }
+            });
+          });
+
+      };
+
+      function save(){
+          userInfo=$api.getStorage('userInfo');
+
+          name = $api.getStorage('myName');  //中文名字
+          code = $api.getStorage('myCode');  //激活群
+          var note=zxEditor.getContent();
+          if($api.trim(note)==''){
+              api.toast({
+                  msg: '内容为空！',
+                  duration: 2000,
+                  location: 'middle'
+              });
+              return;
+          }
+          if(op){
+              _Ques.save(
+              {
+                  Name : name,
+                  Code : code,
+                  Keys : op,  //不为零是回复问题ID
+                  Sign : userInfo.username,
+                  Tags : userInfo.avatar,
+                  Note : note
+              }, function(ret,err){
+                  if(err){
+                      console.log(JSON.stringify( err ));
+                  }else{
+                    api.closeWin({
+                    });
+                  }
+              });
+          }
+          else {
+              _Ques.save(
+              {
+                  Name : name,
+                  Code : code,
+                  Keys : '0',
+                  Sign : userInfo.username,
+                  Tags : userInfo.avatar,
+                  Note : note
+              }, function(ret,err){
+                  if(err){
+                      console.log(JSON.stringify( err ));
+                  }else{
+                    api.closeWin({
+                    });
+                  }
+              });
+          }
+      }
+
+      function showPopup(w,h){
+          var popUp = document.getElementById("popupcontent");
+          popUp.style.top = "200px";
+          popUp.style.left = "200px";
+          popUp.style.width = w + "px";
+          popUp.style.height = h + "px";
+
+          popUp.style.visibility = "visible";
+      }
+  </script>
+  </html>

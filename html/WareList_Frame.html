@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+      <style>
+
+      </style>
+  </head>
+  <body>
+      <ul class="aui-list aui-form-list">
+          <li class="aui-list-item">
+              <div class="aui-list-item-label-icon" tapmode>
+                  <i class="aui-iconfont aui-icon-pencil"></i>
+              </div>
+              <div class="aui-list-item-inner" tapmode>
+                  仓库
+              </div>
+              <div class="aui-list-item-label-icon" tapmode>
+                  <i id='icon' class="aui-iconfont aui-icon-right"></i>
+              </div>
+          </li>
+      </ul>
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript" src="../script/APICloud-rest.js"></script>
+  <script type="text/javascript" src="../script/SHA1.js"></script>
+  <script type="text/javascript">
+      var el,html,ell;
+      var myId=$api.getStorage('myId');
+      var myKey=$api.getStorage('myKey');
+
+      var client = new Resource(myId, myKey);
+      var _Ware = client.Factory("Ware");
+      var userInfo=$api.getStorage('userInfo');
+      var id=userInfo.id;
+      var el,html,tag,txt='';
+      var param,op,po;
+      apiready = function(){
+          param=api.pageParam;
+          op=param.op;
+          po=param.data;
+          tag=$api.getStorage('hiretag');
+          api.parseTapmode();
+          el=$api.dom('.aui-list');
+          html=$api.html(el);
+          var item=$api.dom(el,'.aui-list-item');
+          $api.remove(item);
+          WareList();
+          api.setRefreshHeaderInfo({
+              loadingImg: 'widget://image/loading_more.gif',
+              bgColor: '#ccc',
+              textColor: '#fff',
+              textDown: '下拉刷新...',
+              textUp: '松开刷新...'
+          }, function(ret, err) {
+              //在这里从服务器加载数据，加载完成后调用api.refreshHeaderLoadDone()方法恢复组件到默认状态
+              WareList();
+              setTimeout(function() {
+                  api.refreshHeaderLoadDone()
+              }, 1000);
+          });
+      };
+      function find() {
+          api.prompt({
+              title:'查询',
+              msg:'仓库数据',
+              buttons: ['确定', '取消']
+          }, function(ret, err) {
+              var index = ret.buttonIndex;
+              if(index==1){
+                  txt = ret.text;
+                  WareList();
+              }
+          });
+      }
+      function WareList(){
+        var name = po.Name;  //表名
+        var code = po.Code;  //字段
+        codes=code.split(',')
+        _Ware.query({
+            filter:{
+                where:{Name: name}
+            }
+        }, function(ret,err){
+              if(err){
+                  console.log(JSON.stringify( err ));
+              }else{
+                  $api.html(el,'');
+                  //console.log(JSON.stringify( ret ));
+                  var i,eli,elia;
+                  for(i=0;i<ret.length;i++){
+                      $api.append(el,html);
+                      eli=$api.last(el,'.aui-list-item');
+                      elia=$api.dom(eli,'.aui-list-item-inner');
+                      eval('$api.text(elia,ret[i].'+codes[0]+')');
+                      elia.index=i;
+                      elia.onclick=function () {
+                          api.openWin({
+                              name: 'ware',
+                              url: 'Ware.html',
+                              pageParam: {
+                                  op: op,
+                                  po: po,
+                                  data: ret[this.index]
+                              }
+                          });
+
+                      }
+
+                      elili=$api.last(eli,'.aui-list-item-label-icon');
+                      elili.index=i;
+                      if(tag==1){
+                          elili.text=$api.text(elia);
+                          $api.html(elili,'<i class="aui-iconfont aui-icon-close"></i>');
+                          elili.onclick=function () {
+                              lose(this,ret[this.index],this.text);
+                          }
+                      }
+                      else{
+                          elili.onclick=function () {
+                              api.toast({
+                                  msg:ret[this.index].Tags+'编辑！',
+                                  duration: 2000,
+                                  location: 'middle'
+                              });
+
+                          }
+                      }
+                  }
+
+              }
+          });
+      }
+      function lose(el,data,txt) {
+          api.confirm({
+              title: '提醒',
+              msg: '你要删除['+txt+']仓库吗？',
+              buttons: ['确定', '取消']
+          }, function(ret, err) {
+              var index = ret.buttonIndex;
+              if(index==1){
+                  $api.remove(el.parentNode);
+                  losehire(data);
+              }
+          });
+      }
+      function losehire(data) {
+          
+          _Ware.delete({"_id":data.id},function(ret,err){
+              if(err){
+                  //处理错误 err
+              }else{
+                  //处理数据 ret
+              }
+          });
+      }
+  </script>
+  </html>

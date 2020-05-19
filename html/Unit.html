@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <link rel="stylesheet" type="text/css" href="../css/aui.css" />
+      <style>
+
+      </style>
+  </head>
+  <body>
+    <header class="aui-bar aui-bar-nav" id="aui-header">
+        <a class="aui-btn aui-pull-left" tapmode onclick="closeWin()">
+            <span class="aui-iconfont aui-icon-left"></span>
+        </a>
+        <div class="aui-title"  tapmode onclick="unituser()">创建群组</div>
+        <a class="aui-btn aui-pull-right" tapmode onclick="save()">
+            <span class="aui-iconfont aui-icon-correct"></span>
+        </a>
+    </header>
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript">
+      var param,op,data;
+      apiready = function(){
+          api.parseTapmode();
+          var header = $api.byId('aui-header');
+          $api.fixStatusBar(header);
+          var headerPos = $api.offset(header);
+
+          param=api.pageParam;
+          data=param.data;
+          op=param.op;
+          var el=$api.dom('.aui-title');
+          if(op=='join'){
+            $api.html(el,'加入群组');
+          }
+          if(op=='edit'){
+            $api.html(el,'编辑群组');
+          }
+          api.openFrame({
+              name: 'unit_frame',
+              url: 'Unit_Frame.html',
+              bounces: true,
+              rect: {
+                  x: 0,
+                  y: headerPos.h,
+                  w: 'auto',
+                  h: 'auto'
+              },
+              pageParam: param
+          })
+      };
+      function unituser(){
+          api.openWin({
+              name: 'unituser',
+              url: 'UnitUser.html',
+              pageParam: {
+                  data: data
+              }
+          });
+      }
+      function save(){
+          api.execScript({
+              frameName: 'unit_frame',
+              script: 'save()'
+          });
+      }
+      function closeWin(){
+          api.closeWin({
+          });
+      }
+  </script>
+  </html>

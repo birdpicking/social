@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+      <style>
+          .icon-panel{
+            width:100%;
+            height:100px;
+            background-color: #ccc;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+          }
+          .avatar{
+            width:80px;
+            height:80px;
+            background-color: Violet;
+            border-radius: 40px;
+          }
+          .icon{
+            width:30px;
+            height:30px;
+          }
+          .status{width:100%;text-align:center; display:block;height:28px;vertical-align: top;background-color: #ccc;}
+      </style>
+  </head>
+  <body>
+      <header>
+          <div class="icon-panel" tapmode onclick="avatar()">
+              <div id="icon" class="avatar"></div>
+          </div>
+          <div id="username" class="status" tapmode onclick="handle()">进入</div>
+      </header>
+      <ul class="aui-list aui-media-list">
+          <li class="aui-list-item aui-list-item-middle" tapmode onclick="flag()">
+              <div class="aui-media-list-item-inner">
+                  <div class="aui-list-item-label-icon">
+                      <i class="aui-iconfont aui-icon-flag"></i>
+                  </div>
+                  <div class="aui-list-item-inner aui-list-item-arrow">
+                      使用说明
+                  </div>
+              </div>
+          </li>
+          <li class="aui-list-item aui-list-item-middle" tapmode onclick="ques()">
+              <div class="aui-media-list-item-inner">
+                  <div class="aui-list-item-label-icon">
+                      <i class="aui-iconfont aui-icon-question"></i>
+                  </div>
+                  <div class="aui-list-item-inner aui-list-item-arrow">
+                      常见问题
+                  </div>
+              </div>
+          </li>
+          <li class="aui-list-item aui-list-item-middle" tapmode onclick="laud()">
+              <div class="aui-media-list-item-inner">
+                  <div class="aui-list-item-label-icon">
+                      <i class="aui-iconfont aui-icon-laud"></i>
+                  </div>
+                  <div class="aui-list-item-inner aui-list-item-arrow">
+                      技术支持
+                  </div>
+              </div>
+          </li>
+      </ul>
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript" src="../script/APICloud-rest.js"></script>
+  <script type="text/javascript" src="../script/SHA1.js"></script>
+  <script type="text/javascript">
+      var now = Date.now();
+      var myId=$api.getStorage('myId');
+      var myKey=$api.getStorage('myKey');
+      var client = new Resource(myId, myKey);
+      var appKey = SHA1(myId+"UZ"+myKey+"UZ"+now)+"."+now;
+      apiready = function(){
+          setHeader();
+      };
+      function avatar() {
+          var userInfo=$api.getStorage('userInfo');
+          if(userInfo){
+              fnSetAvatar();
+          }
+          else {
+              api.openWin({
+                  name: 'login',
+                  url: './Login.html'
+              });
+          }
+      }
+      function handle() {
+          var username = $api.byId('username');
+          var code = $api.html(username);
+          if(code=='进入'){
+              api.openWin({
+                  name: 'login',
+                  url: './Login.html'
+              });
+          }
+          else {
+              api.confirm({
+                  title: code,
+                  msg: '退出登录状态吗？',
+                  buttons: ['确定', '取消']
+              }, function(ret, err) {
+                  var index = ret.buttonIndex;
+                  if(index==1){
+                      var userInfo=$api.getStorage('userInfo');
+                      var author=userInfo.author;
+                      api.ajax({
+                          url: 'https://d.apicloud.com/mcm/api/user/logout',
+                          method: 'post',
+                          headers: {
+                              "X-ApiCloud-AppId":myId,
+                              "X-APICloud-AppKey":appKey,
+                              "authorization":author
+                          }
+                      }, function(ret, err) {
+                          //console.log(JSON.stringify( ret ));
+                          $api.setStorage('userInfo',null);
+                          $api.setStorage('userPost',null);
+                          var db = api.require('db');
+                          db.executeSql({
+                              name: 'db',
+                              sql: 'drop table if exists Info'
+                          }, function(ret, err) {
+                          });
+                          $api.html(username,'进入');
+                          var icon=$api.byId('icon');
+                          icon.style.background='Violet';
+                      });
+
+                  }
+              });
+          }
+      }
+
+      function flag() {
+          api.openWin({
+              name: 'flag',
+              url: 'Flag.html',
+          });
+      }
+      function ques() {
+          api.openWin({
+              name: 'queslist',
+              url: 'QuesList.html',
+          });
+      }
+      function laud() {
+          api.openWin({
+              name: 'laud',
+              url: 'Laud.html',
+          });
+      }
+      function setHeader() {
+          var userInfo=$api.getStorage('userInfo');
+          //console.log(JSON.stringify( userInfo ));
+          if(userInfo){
+              var username = $api.byId('username');
+              $api.html(username,userInfo.username);
+              fnUpdateLocalAvatar(userInfo.avatar);
+          }
+      }
+      function fnUpdateLocalAvatar(avatar) {
+        var icon=$api.byId('icon');
+        api.imageCache({
+            url: avatar
+        }, function(ret, err){
+            if( ret ){
+                 //图片本地存储路径
+                 icon.style.background='url('+ret.url+')';
+            }else{
+                 alert( JSON.stringify( err ) );
+            }
+        });
+      }
+      //设置用户化身
+      function fnSetAvatar() {
+          api.actionSheet({
+              title: '选择',
+              cancelTitle: '取消',
+              buttons: ['拍照','相册']
+          }, function(ret, err){
+              if( ret ){
+                   //alert( JSON.stringify( ret ) );
+                   var sourceTypes=[
+                     'camera',
+                     'album'
+                   ];
+
+                   api.getPicture({
+                       sourceType: sourceTypes[ret.buttonIndex-1],
+                       allowEdit: true,
+                       quality: 50,
+                       targetWidth: 100,
+                       targetHeight: 100,
+                       saveToPhotoAlbum: false
+                   }, function(ret, err){
+                       if(ret){
+                            //alert(JSON.stringify(ret));
+                            fnUploadAvatar(ret.data);
+                       }else{
+                            alert(JSON.stringify(err));
+                       }
+                   });
+
+
+              }else{
+                   alert( JSON.stringify( err ) );
+              }
+          });
+      }
+
+      function fnUploadAvatar(avatarUrl_) {
+          api.ajax({
+              url: 'https://d.apicloud.com/mcm/api/file',
+              method: 'post',
+              headers: {
+                "X-ApiCloud-AppId":myId,
+                "X-APICloud-AppKey":appKey
+              },
+              data: {
+                  values: {
+                      filename: 'icon'
+                  },
+                  files: {
+                      file: avatarUrl_
+                  }
+              }
+          }, function(ret, err) {
+              if (ret) {
+                  //api.alert({ msg: JSON.stringify(ret) });
+                  fnUpdateUserAvatar(ret.url)
+              } else {
+                  api.alert({ msg: JSON.stringify(err) });
+              }
+          });
+      }
+
+      function fnUpdateUserAvatar(avatar_) {
+          var userInfo=$api.getStorage('userInfo');
+          api.ajax({
+              url: 'https://d.apicloud.com/mcm/api/user/'+userInfo.id,
+              method: 'put',
+              headers: {
+                "X-ApiCloud-AppId":myId,
+                "X-APICloud-AppKey":appKey,
+                "authorization":userInfo.author
+              },
+              data: {
+                  values: {
+                      avatar: avatar_
+                  }
+              }
+          }, function(ret, err) {
+              if (ret) {
+                  //api.alert({ msg: JSON.stringify(ret) });
+                  userInfo.avatar=ret.avatar;
+                  $api.setStorage('userInfo',userInfo);
+                  fnUpdateLocalAvatar(ret.avatar)
+              } else {
+                  api.alert({ msg: JSON.stringify(err) });
+              }
+          });
+      }
+
+  </script>
+  </html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+      <link rel="stylesheet" type="text/css" href="../css/aui.css" />
+      <style>
+          body {background-color: #fff;}
+          html {font-size: 22px;}
+          p {font-size: 18px;}
+          #keys{padding-top: 13px;}
+
+      </style>
+  </head>
+  <body>
+      <ul class="aui-list aui-form-list">
+          <li class="aui-list-item">
+              <div class="aui-list-item-inner">
+                  <div class="aui-list-item-input">
+                      <input id="name" type="text" placeholder="主题">
+                  </div>
+              </div>
+          </li>
+
+      </ul>
+      <div id="note"></div>
+
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript" src="../script/exif.min.js"></script>
+  <script type="text/javascript" src="../script/zx-editor.min.js"></script>
+  <script type="text/javascript" src="../script/APICloud-rest.js"></script>
+  <script type="text/javascript" src="../script/SHA1.js"></script>
+  <script type="text/javascript">
+      var myId=$api.getStorage('myId');
+      var myKey=$api.getStorage('myKey');
+      var client = new Resource(myId, myKey);
+      var _Note = client.Factory("Note");
+      var param,op;
+      var id;
+      var objs;
+      var zxEditor = new ZxEditor('#note', {
+        autoSave: 20
+      });
+      apiready = function(){
+          param=api.pageParam;
+          op=param.op;
+          //var el=$api.dom('.aui-list');
+          zxEditor.on('add-link', next => {
+              var fileBrowser = api.require('fileBrowser');
+              fileBrowser.open(function(ret) {
+                  if (ret) {
+                      fileBrowser.close();
+                      //alert(JSON.stringify(ret));
+                      var File = client.Factory("file");
+                      File.save({file:{isFile:true,path:ret.url,values:{filename:ret.name}}},function(ret,err){
+                          next(ret.url, ret.name)
+                      });
+                  }
+              });
+          });
+
+          if(op!='plus'){
+              var data=param.data;
+              id=data.id;
+              $api.val($api.byId('name'),data.Name);
+              if(op=='look')
+                $api.attr($api.byId('name'),"readOnly",true);
+
+              zxEditor.setContent(data.Note) ;
+          }
+
+      };
+
+      function save(){
+          userInfo=$api.getStorage('userInfo');
+          var title=$api.val($api.byId('name'));
+          if($api.trim(title)==''){
+              api.toast({
+                  msg: '主题不可为空！',
+                  duration: 2000,
+                  location: 'middle'
+              });
+              return;
+          }
+          name = $api.getStorage('myName');  //中文名字
+          code = $api.getStorage('myCode');  //激活群
+          var note=zxEditor.getContent();
+          if(op=='plus'){
+              _Note.save(
+              {
+                  Name : title,
+                  Code : code,
+                  Keys : name,
+                  Sign : userInfo.username,
+                  Note : note
+              }, function(ret,err){
+                  if(err){
+                      console.log(JSON.stringify( err ));
+                  }else{
+                    api.closeWin({
+                    });
+                  }
+              });
+          }
+          else {
+              _Note.save({"_id" : id},
+              {
+                  Name : title,
+                  Code : code,
+                  Keys : name,
+                  Sign : userInfo.id,
+                  Note : note
+              }, function(ret,err){
+                  if(err){
+                      console.log(JSON.stringify( err ));
+                  }else{
+                    api.closeWin({
+                    });
+                  }
+              });
+          }
+      }
+
+      function showPopup(w,h){
+          var popUp = document.getElementById("popupcontent");
+          popUp.style.top = "200px";
+          popUp.style.left = "200px";
+          popUp.style.width = w + "px";
+          popUp.style.height = h + "px";
+
+          popUp.style.visibility = "visible";
+      }
+  </script>
+  </html>

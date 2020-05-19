@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <link rel="stylesheet" type="text/css" href="../css/aui.css" />
+      <style>
+          body{
+
+          }
+      </style>
+  </head>
+  <body>
+        <ul class="aui-list aui-media-list">
+            <li class="aui-list-item" tapmode>
+                <div class="aui-media-list-item-inner">
+                    <div class="aui-list-item-label-icon">
+                        <i class="aui-iconfont aui-icon-star"></i>
+                    </div>
+                    <div class="aui-list-item-inner aui-list-item-arrow">
+                        APICloud AUI
+                    </div>
+                </div>
+            </li>
+
+        </ul>
+
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript">
+      apiready = function(){
+          api.parseTapmode();
+          var el=$api.dom('.aui-list');
+          var html=$api.html(el);
+          var item=$api.dom(el,'.aui-list-item');
+          $api.remove(item);
+          var param=api.pageParam;
+          var data=param.data;
+          if(data.length==0){
+              api.toast({
+                  msg: '数据为空',
+                  duration: 1000,
+                  location: 'middle'
+              });
+              return;
+          }
+          var i,eli,elia;
+          for(i=0;i<data.length;i++){
+              $api.append(el,html);
+              eli=$api.last(el,'.aui-list-item');
+              elia=$api.dom(eli,'.aui-list-item-arrow');
+              //alert($api.html(elia));
+              $api.text(elia,data[i].Code);
+          }
+
+          list =$api.domAll('.aui-list-item');
+          for(i=0;i<list.length;i++){
+              list[i].index=i;
+              list[i].onclick=function () {
+                  api.openWin({
+                      name: 'unit',
+                      url: 'Unit.html',
+                      pageParam: {
+                          op: 'join',
+                          data: data[this.index]
+                      }
+                  });
+                  api.closeWin({
+                  });
+              }
+          }
+      };
+  </script>
+  </html>

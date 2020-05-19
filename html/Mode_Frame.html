@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+      <link rel="stylesheet" type="text/css" href="../css/aui.css" />
+      <style>
+          body {background-color: #fff;}
+          html {font-size: 22px;}
+          p {font-size: 18px;}
+          #keys{padding-top: 13px;}
+
+      </style>
+  </head>
+  <body>
+      <ul class="aui-list aui-form-list">
+
+          <li class="aui-list-item">
+              <div class="aui-list-item-inner">
+                  <div class="aui-list-item-input">
+                      <input id="name" type="text" placeholder="表名">
+                  </div>
+              </div>
+          </li>
+          <li class="aui-list-item">
+              <div class="aui-list-item-inner">
+                  <div class="aui-list-item-input" tapmode onclick="unitpick('编辑权限')">
+                      <input id="sign" type="text" disabled placeholder="编辑权限对象列表">
+                  </div>
+              </div>
+          </li>
+          <li class="aui-list-item">
+              <div class="aui-list-item-inner">
+                  <div class="aui-list-item-input" tapmode onclick="unitpick('查询权限')">
+                      <input id="keys" type="text" readonly placeholder="查询权限对象列表">
+                  </div>
+              </div>
+          </li>
+          <li class="aui-list-item">
+              <div class="aui-list-item-inner">
+                <div class="aui-list-item-input">
+                    <input class="code" type="text" placeholder="字段">
+                </div>
+              </div>
+              <div class="aui-list-item-label-icon" tapmode onclick="cell()">
+                  <i class="aui-iconfont aui-icon-plus"></i>
+              </div>
+          </li>
+      </ul>
+
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript" src="../script/APICloud-rest.js"></script>
+  <script type="text/javascript" src="../script/SHA1.js"></script>
+  <script type="text/javascript">
+      var myId=$api.getStorage('myId');
+      var myKey=$api.getStorage('myKey');
+      var client = new Resource(myId, myKey);
+      var _mode = client.Factory("mode");
+      var param;
+      var op;
+      var objs;
+      var userInfo;
+      apiready = function(){
+          param=api.pageParam;
+          op=param.op;
+          //var el=$api.dom('.aui-list');
+
+          if(op!='plus'){
+              var data=param.data;
+              //console.log(JSON.stringify( data ));
+              $api.val($api.byId('name'),data.Name);
+              $api.val($api.byId('sign'),data.Sign);
+              $api.val($api.byId('keys'),data.Keys);
+              var el=$api.dom('.aui-list')
+              var eli=$api.last(el,'.aui-list-item');
+              var html=eli.outerHTML;
+              code=data.Code;
+              codes=code.split(',');
+              code=codes[0];
+              elia=$api.dom(eli,'.code');
+              $api.val(elia,code);
+              if(op=='look'){
+                  icon=$api.dom(eli,'.aui-iconfont');
+                  $api.removeCls(icon, 'aui-icon-plus')
+                  $api.attr(elia,"readOnly",true);
+              }
+              for(i=1;i<codes.length;i++){
+                  code=codes[i];
+                  $api.append(el,html);
+                  eli=$api.last(el,'.aui-list-item');
+                  elia=$api.dom(eli,'.code');
+                  $api.val(elia,code);
+                  if(op=='look'){
+                      icon=$api.dom(eli,'.aui-iconfont');
+                      $api.removeCls(icon, 'aui-icon-plus')
+                      $api.attr(elia,"readOnly",true);
+                  }
+                  else{
+                      icon=$api.dom(eli,'.aui-list-item-label-icon');
+                      $api.html(icon,'<i class="aui-iconfont aui-icon-minus"></i>');
+                      icon.onclick=function (){
+                          $api.remove(eli);
+                      }
+                  }
+
+              }
+
+              if(op=='look'){
+                  $api.attr($api.byId('name'),"readOnly",true);
+
+              }
+
+
+          }
+          api.addEventListener({
+              name : 'pickunit'
+          }, function(ret, err) {
+              hand = ret.value.op;
+              if(hand=='编辑权限')
+                  hand='sign';
+              if(hand=='查询权限')
+                  hand='keys';
+              objs = ret.value.objs;
+              $api.val($api.byId(hand),objs);
+
+          });
+
+      };
+      function unitpick(po) {
+          if(op!='look'){
+              api.openWin({
+                  name: 'unitpick',
+                  url: 'UnitPick.html',
+                  pageParam: {
+                      op: po
+                  }
+              });
+          }
+
+      }
+      function cell() {
+          var el=$api.dom('.aui-list')
+          var eli=$api.last(el,'.aui-list-item');
+          var elia=$api.dom(eli,'.aui-list-item-inner');
+          var html=eli.outerHTML;
+          $api.append(el,html);
+          eli=$api.last(el,'.aui-list-item');
+          icon=$api.dom(eli,'.aui-list-item-label-icon');
+          $api.html(icon,'<i class="aui-iconfont aui-icon-minus"></i>');
+          icon.onclick=function (){
+              $api.remove(eli);
+          }
+      }
+      function save(){
+          var name=$api.val($api.byId('name'));
+          if($api.trim(name)==''){
+              api.toast({
+                  msg: '表名不可为空！',
+                  duration: 2000,
+                  location: 'middle'
+              });
+              return;
+          }
+          var codes=$api.domAll('.code');
+          var code='';
+          for(i=0;i<codes.length;i++){
+            code += ','+$api.val(codes[i]);
+          }
+          code=code.substr(1);
+          //console.log(JSON.stringify( code ));
+          if(code==''){
+              api.toast({
+                  msg: '字段不可为空！',
+                  duration: 2000,
+                  location: 'middle'
+              });
+              return;
+          }
+          var sign=$api.val($api.byId('sign'));
+          if(sign==''){
+              api.toast({
+                  msg: '编辑权限不可为空！',
+                  duration: 2000,
+                  location: 'middle'
+              });
+              return;
+          }
+          var keys=$api.val($api.byId('keys'));
+          userInfo=$api.getStorage('userInfo');
+          _mode.save(
+          {
+              Name : name,  //表名
+              Code : code,  //字段
+              Sign : sign,  //编辑权限
+              Keys : keys,  //查询权限
+              Tags : userInfo.username
+          }, function(ret,err){
+              if(err){
+                  console.log(JSON.stringify( err ));
+              }else{
+                api.closeWin({
+                });
+              }
+          });
+
+      }
+
+      function showPopup(w,h){
+          var popUp = document.getElementById("popupcontent");
+          popUp.style.top = "200px";
+          popUp.style.left = "200px";
+          popUp.style.width = w + "px";
+          popUp.style.height = h + "px";
+
+          popUp.style.visibility = "visible";
+      }
+  </script>
+  </html>

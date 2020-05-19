@@ -1,0 +1,722 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title>社交平台</title>
+    <link rel="stylesheet" type="text/css" href="../css/api.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/style.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/aui.css" />
+    <style>
+        header {background-color: #f2f2f2;}
+        header ul li { display: none; }
+        header ul li.active{ display: block; }
+        footer{  background-color: #f2f2f2; }
+        footer ul li{  padding-top: 36px; padding-bottom: 4px; background: url() no-repeat center 2px; background-size: auto 30px; text-align: center; }
+        footer ul li.active{ color: #6ab494; }
+        footer ul li:nth-child(1){ background-image: url(../image/mail.gif); }
+        footer ul li:nth-child(2){ background-image: url(../image/note.gif); }
+        footer ul li:nth-child(3){ background-image: url(../image/user.gif); }
+        footer ul li:nth-child(4){ background-image: url(../image/unit.gif); }
+        footer ul li:nth-child(1).active{ background-image: url(../image/mail.png); }
+        footer ul li:nth-child(2).active{ background-image: url(../image/note.png); }
+        footer ul li:nth-child(3).active{ background-image: url(../image/user.png); }
+        footer ul li:nth-child(4).active{ background-image: url(../image/unit.png); }
+        .flex-con{
+          overflow: auto
+        }
+    </style>
+</head>
+<body>
+<div id="wrap" class="flex-wrap flex-vertical">
+    <header class="aui-bar aui-bar-nav">
+        <a class="aui-btn aui-pull-left" tapmode onclick="my()">
+            <span class="aui-iconfont aui-icon-mail"></span>
+        </a>
+        <div class="aui-title" tapmode onclick="find()">邮件</div>
+        <a class="aui-btn aui-pull-right" tapmode onclick="plus()">
+            <span class="aui-iconfont aui-icon-plus"></span>
+        </a>
+    </header>
+    <div id="main" class="flex-con">
+
+    </div>
+    <footer class="border-t">
+        <ul class="flex-wrap" >
+            <li tapmode="hover" onclick="randomSwitchBtn( this );" class="flex-con active" >邮件</li>
+            <li tapmode="hover" onclick="randomSwitchBtn( this );" class="flex-con" >随笔</li>
+            <li tapmode="hover" onclick="randomSwitchBtn( this );" class="flex-con" >仓库</li>
+            <li tapmode="hover" onclick="randomSwitchBtn( this );" class="flex-con" >人脉</li>
+        </ul>
+    </footer>
+</div>
+</body>
+</html>
+<script type="text/javascript" src="../script/api.js"></script>
+<script type="text/javascript" src="../script/APICloud-rest.js"></script>
+<script type="text/javascript" src="../script/SHA1.js"></script>
+<script type="text/javascript">
+    var rong,ip;
+    var box,txt,index = 0;
+    var el=$api.dom('.aui-title'),ell;
+    var myCode = $api.getStorage('myCode');
+    var userInfo;
+    var mailtag=$api.getStorage('mailtag');
+    var notetag=$api.getStorage('notetag');
+    var hiretag=$api.getStorage('hiretag');
+    var tag,icon;
+    var myId=$api.getStorage('myId');
+    var myKey=$api.getStorage('myKey');
+    var client = new Resource(myId, myKey);
+    var _Info = client.Factory("Info");
+    var _Gear = client.Factory("Gear");
+    apiready = function () {
+        if(!mailtag){
+             mailtag = 0;
+             $api.setStorage('mailtag',mailtag);
+             notetag = 0;
+             $api.setStorage('notetag',notetag);
+             hiretag = 0;
+             $api.setStorage('hiretag',hiretag);
+        }
+        if(mailtag == 1){
+            icon = $api.dom('.aui-pull-left');
+            $api.html(icon,'<span class="aui-iconfont aui-icon-map"></span>');
+        }
+        $api.fixStatusBar( $api.dom('header') );
+        api.setStatusBarStyle({
+            style: 'dark',
+            color: '#6ab494'
+        });
+        funIniGroup();
+        userInfo=$api.getStorage('userInfo');
+        if(!userInfo){
+           taptag();
+           alert('用户未登录！');
+           my();
+           return;
+        }
+        if(!myCode){
+           taptag();
+
+           api.toast({
+               msg:'群组未激活！',
+               duration: 3000,
+               location: 'middle'
+           });
+           return;
+        }
+        api.addEventListener({      //Info_Frame
+            name : 'sendMessage'
+        }, function(ret, err) {
+            if(ret){
+                sendMessage(ret);
+            }
+        });
+        init();
+    }
+    function my() {
+
+        box = $api.dom('footer li.active');
+        txt=$api.html(box);
+
+        if(txt=='邮件'){
+            var msg='收件箱状态！';
+            icon = $api.dom('.aui-pull-left');
+            if(mailtag==0){
+              $api.html(icon,'<span class="aui-iconfont aui-icon-map"></span>');
+              mailtag=1;
+              msg='发件箱状态！'
+            }
+            else{
+              $api.html(icon,'<span class="aui-iconfont aui-icon-mail"></span>');
+              mailtag=0;
+            }
+            api.toast({
+                msg: msg,
+                duration: 2000,
+                location: 'middle'
+            });
+            $api.setStorage('mailtag',mailtag);
+            var jsfun = "MailTag("+mailtag+");";
+            api.execScript({
+                frameName: 'frame0',
+                script: jsfun
+            });
+        }
+        if(txt=='随笔'){
+            icon = $api.dom('.aui-pull-left');
+            if(notetag==0){
+              $api.html(icon,'<span class="aui-iconfont aui-icon-edit"></span>');
+              notetag=1;
+            }
+            else{
+              $api.html(icon,'<span class="aui-iconfont aui-icon-search"></span>');
+              notetag=0;
+            }
+            $api.setStorage('notetag',notetag);
+            var jsfun = "NoteTag("+notetag+");";
+            api.execScript({
+                frameName: 'frame1',
+                script: jsfun
+            });
+        }
+        if(txt=='仓库'){
+            icon = $api.dom('.aui-pull-left');
+            if(hiretag==0){
+              $api.html(icon,'<span class="aui-iconfont aui-icon-edit"></span>');
+              hiretag=1;
+            }
+            else{
+              $api.html(icon,'<span class="aui-iconfont aui-icon-search"></span>');
+              hiretag=0;
+            }
+            $api.setStorage('hiretag',hiretag);
+            var jsfun = "HireTag("+hiretag+");";
+            api.execScript({
+                frameName: 'frame2',
+                script: jsfun
+            });
+        }
+        if(txt=='人脉'){
+
+            api.openWin({
+                name: 'user',
+                url: 'User.html',
+                animation:{
+                    type:"push",                //动画类型（详见动画类型常量）
+                    subType:"from_left",       //动画子类型（详见动画子类型常量）
+                    duration:300                //动画过渡时间，默认300毫秒
+                }
+            });
+        }
+    }
+    function plus() {
+        switch(index) {
+           case 1:
+              api.openWin({
+                 name: 'note',
+                 url: 'Note.html',
+                 pageParam: {
+                     op: 'plus'
+                 }
+              });
+              break;
+           case 2:
+              api.openWin({
+                name: 'mode',
+                url: 'Mode.html',
+                pageParam: {
+                    op: 'plus'
+                }
+              });
+              break;
+           case 3:
+               api.openWin({
+                   name: 'unit',
+                   url: 'Unit.html',
+                   pageParam: {
+                       op: 'plus'
+                   }
+               });
+              break;
+           default:
+               api.openWin({
+                   name: 'info',
+                   url: 'Info.html',
+                   pageParam: {
+                       op: 'plus'
+                   }
+               });
+        }
+
+    }
+    function funIniGroup(){
+        var eHeaderLis = $api.domAll('footer li'),
+            frames = [];
+        for (var i = 0,len = eHeaderLis.length; i < len; i++) {
+                frames.push( {
+                    name: 'frame'+i,
+                    url: 'frame'+i+'.html',
+                    bgColor : 'rgba(0,0,0,.2)',
+                    bounces:true
+                } )
+        }
+        api.openFrameGroup({
+            name: 'group',
+            scrollEnabled: false,
+            rect: {
+                x: 0,
+                y: $api.dom('header').offsetHeight,
+                w: api.winWidth,
+                h: $api.dom('#main').offsetHeight
+            },
+            index: 0,
+            frames: frames
+        }, function (ret, err) {
+
+        });
+        ell=eHeaderLis[i-1];
+    }
+    //未激活群组切换
+    function taptag(){
+        randomSwitchBtn( ell );
+    }
+    // 随意切换按钮
+    function randomSwitchBtn( tag ) {
+        if( tag == $api.dom('footer li.active') )return;
+        var eFootLis = $api.domAll('footer li');
+
+        for (var i = 0,len = eFootLis.length; i < len; i++) {
+            if( tag == eFootLis[i] ){
+                index = i;
+            }else{
+                $api.removeCls(eFootLis[i], 'active');
+            }
+        }
+        $api.addCls( eFootLis[index], 'active');
+        icon = $api.dom('.aui-pull-left');
+        switch(index) {
+             case 1:
+                if(notetag==0)
+                    $api.html(icon,'<span class="aui-iconfont aui-icon-search"></span>');
+                if(notetag==1)
+                    $api.html(icon,'<span class="aui-iconfont aui-icon-edit"></span>');
+                $api.html(el, '随笔');
+                break;
+             case 2:
+                if(hiretag==0)
+                   $api.html(icon,'<span class="aui-iconfont aui-icon-search"></span>');
+                if(hiretag==1)
+                   $api.html(icon,'<span class="aui-iconfont aui-icon-edit"></span>');
+                $api.html(el, '仓库');
+                break;
+             case 3:
+                $api.html(icon,'<span class="aui-iconfont aui-icon-my"></span>');
+                $api.html(el, '人脉');
+                break;
+             default:
+                if(mailtag==0)
+                   $api.html(icon,'<span class="aui-iconfont aui-icon-mail"></span>');
+                if(mailtag==1)
+                   $api.html(icon,'<span class="aui-iconfont aui-icon-map"></span>');
+                $api.html(el, '邮件');
+        }
+        api.setFrameGroupIndex({
+            name: 'group',
+            index: index
+        });
+    }
+
+    function find() {
+        var html=$api.html(el);
+        var jsfun = "find();";
+        if(html=='邮件'){
+            api.execScript({
+                frameName: 'frame0',
+                script: jsfun
+            });
+        }
+        if(html=='随笔'){
+            api.execScript({
+                frameName: 'frame1',
+                script: jsfun
+            });
+        }
+        if(html=='人脉'){
+            api.execScript({
+                frameName: 'frame3',
+                script: jsfun
+            });
+        }
+    }
+    function sendMessage(ret) {
+        //console.log(JSON.stringify( ret ));
+        cmd = ret.value.Cmd;
+        switch (cmd) {
+          case 'info':  //信息
+            infoMessage(ret) ;
+            break;
+          case 'unit':  //群组改变
+            unitMessage(ret) ;
+            break;
+          case 'tail':  //0—未读；1—待办；2—已办；3—已读；[frame0,info]
+            pi = ret.value.IP;
+            //console.log(pi);
+            rong.sendTextMessage({
+                conversationType: 'PRIVATE',
+                targetId: pi,
+                text: '状态改变',
+                extra: 'tail'
+            }, function(ret, err) {
+                if (ret.status == 'prepare')
+                    api.toast({ msg: JSON.stringify(ret.result.message) });
+                else if (ret.status == 'success')
+                    api.toast({ msg: '发送成功！' });
+                else if (ret.status == 'error'){
+                  api.toast({ msg: err.code });
+                  console.log('错误信息：'+JSON.stringify(err));
+                  //30001当前连接不可用（连接已经被释放）。建立连接的临时错误码，SDK 会做好自动重连，开发者无须处理。
+                }
+            });
+            break;
+          case 'team':  //多个接收用户(收藏群组)[info]
+            task = ret.value.Task;  //事务号
+            pi = ret.value.PI;
+            _Info.query({
+                filter:{
+                    fields:["id","PI"],
+                    where:{
+                      Task : task,
+                      Team: pi
+                    }
+                }
+            }, function(ret,err){
+                if(err){
+                      console.log(JSON.stringify( err ));
+                  }else{
+                      for(i=0;i<ret.length;i++){
+                           if(ret.PI!=ip){
+                               Model.delete({"_id":ret.id},function(ret,err){
+                                    if(err){
+                                        //处理错误 err
+                                    }else{
+                                        rong.sendTextMessage({
+                                            conversationType: 'PRIVATE',
+                                            targetId: ret.PI,
+                                            text: '任务令牌',
+                                            extra: 'team'
+                                        }, function(ret, err) {
+                                        });
+                                    }
+                                });
+                           }
+                      }
+                }
+            });
+
+            break;
+          default:
+
+        }
+
+    }
+    function unitMessage(ret) {
+
+        code = ret.value.Code;
+        _Gear.query({
+            filter:{
+                fields:["User"],
+                where:{
+                  Code : code
+                }
+            }
+        }, function(ret,err){
+            if(err){
+                console.log(JSON.stringify( err ));
+            }else{
+                for(i=0;i<ret.length;i++){
+                  pi=ret.User;
+                  if(pi!=ip){
+                    rong.sendTextMessage({
+                        conversationType: 'PRIVATE',
+                        targetId: pi,
+                        text: '【'+code+'】群组信息已更改，请进入用户群组重新设置！',
+                        extra: 'unit'
+                    }, function(ret, err) {
+                        if (ret.status == 'prepare')
+                            api.toast({ msg: JSON.stringify(ret.result.message) });
+                        else if (ret.status == 'success')
+                            api.toast({ msg: '发送成功！' });
+                        else if (ret.status == 'error'){
+                          switch(err.code)
+                            {
+                                case 33003:
+                                  alert('传入参数无效');
+                                  break;
+                                case 30014:
+                                  alert('发送处理失败');
+                                  break;
+                                case 30003:
+                                  alert('服务器超时');
+                                  break;
+                                case 31009:
+                                  alert('用户被屏蔽');
+                                  break;
+                                case -10000:
+                                  alert('未调用 init 方法进行初始化');
+                                  break;
+                                case -10001:
+                                  alert('未调用 connect 方法进行连接');
+                                  break;
+                                case -10002:
+                                  alert('输入参数错误');
+                                  break;
+                                case 405:
+                                  alert('用户在黑名单中');
+                                  break;
+                                default:
+                                  alert(err.code+'未知错误');
+                            }
+                        }
+
+                    });
+                  }
+                }
+            }
+        });
+    }
+    //日期格式2020-01-01
+    function getNowFormatDate() {
+        var date = new Date();
+        var seperator1 = "-";
+        var year = date.getFullYear();
+        var month = date.getMonth() + 1;
+        var strDate = date.getDate();
+        if (month >= 1 && month <= 9) {
+            month = "0" + month;
+        }
+        if (strDate >= 0 && strDate <= 9) {
+            strDate = "0" + strDate;
+        }
+        var currentdate = year + seperator1 + month + seperator1 + strDate;
+        return currentdate;
+    }
+    //全球唯一标识符
+    function GUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+            return v.toString(16);
+        });
+    }
+
+    function infoMessage(ret) {
+        title=ret.value.Title;  //主题
+        tick=ret.value.Tick;   //闹钟
+        theme=ret.value.Theme;   //消息内容
+        time=getNowFormatDate();
+        task=GUID();
+        os = ret.value.Objs;  //消息对象数组
+        //console.log(JSON.stringify(os));
+        for(i=0;i<os.length;i++){
+            pi=os[i].PI;
+            sender=os[i].Sender;
+            sendee=os[i].Sendee;
+            //当发送对象是外部单位时默认传送到办公室（多人接收一人处理）
+            pis=new Array();
+            if(pi.indexOf(',')!=-1){
+                pis=pi.split(',');
+            }
+            else {
+                pis[0]=pi;
+            }
+            for(i=0; i<pis.length; i++){
+                _Info.save( {
+                    IP : ip,  //发送号
+                    PI : pis[i],  //接受号
+                    Title : title,  //标题
+                    Theme : theme,  //内容
+                    Tick : tick,  //提醒
+                    Time : time,  //发送时间
+                    Tail : 0,  //未读
+                    Task : task,  //任务号
+                    Team : pi,  //多人
+                    Sender : sender,  //发送者
+                    Sendee : sendee  //接受者
+                }, function(ret,err){
+                    if(err){
+                        //处理错误 err
+                    }else{
+                        //console.log(JSON.stringify( ret ));
+                        //console.log(JSON.stringify( pis[i] ));
+                        rong.sendTextMessage({
+                            conversationType: 'PRIVATE',
+                            targetId: ret.PI,
+                            text: '{"Title":\"'+ret.Title+'\","Theme":\"'+ret.Theme+'\","Tick":\"'+ret.Tick+'\"}',
+                            extra: 'info'
+                        }, function(ret, err) {
+                            //console.log(JSON.stringify( ret ));
+                            if (ret.status == 'prepare')
+                                api.toast({ msg: JSON.stringify(ret.result.message) });
+                            else if (ret.status == 'success')
+                                api.toast({ msg: '发送成功！' });
+                            else if (ret.status == 'error'){
+                              api.toast({ msg: err.code });
+                              console.log('错误信息：'+JSON.stringify(err));
+                              //30001当前连接不可用（连接已经被释放）。建立连接的临时错误码，SDK 会做好自动重连，开发者无须处理。
+                            }
+
+                        });
+                    }
+                });
+
+            }
+
+        }
+        if(mailtag==1){
+            api.execScript({
+                frameName: 'frame0',
+                script: 'init()'
+            });
+        }
+
+    }
+    function init() {
+        //console.log(JSON.stringify(userInfo));
+        userInfo=$api.getStorage('userInfo');
+        im=userInfo.im;
+        ip=userInfo.username;
+        rong = api.require('rongCloud2');
+        rong.init(function(ret, err){
+            //console.log(JSON.stringify( ret ));
+            if (ret.status == 'success'){
+                api.notification({
+                    sound:'default'
+                }, function(ret, err){
+                //
+                });
+                //设置连接状态变化的监听器，请在调用 init 方法之后，调用 connect 方法之前设置
+                rong.setConnectionStatusListener(function(ret, err){
+                    //alert('ConnectionStatus:'+JSON.stringify(ret));
+                    //api.toast({ msg: ret.result.code });
+                });
+                //设置接收消息的监听器，请在调用 init 方法之后，调用 connect 方法之前设置
+                //在rongyun2模块里自己给自己发是无法启动监听的
+                //设置接收消息的监听器，接收到新消息后将消息广播出去，在会话页面接收接收并判断
+                rong.setOnReceiveMessageListener(function (ret, err) {
+                    //{"result":{"left":0,"message":{"content":{"extra":"info","text":"不过分的"},"conversationType":"PRIVATE","extra":"","messageDirection":"RECEIVE","messageId":4,"objectName":"RC:TxtMsg","receivedTime":1539926138470,"senderUserId":"ld","sentStatus":"SENT","sentTime":1539925369873,"targetId":"ld"}}} at main.html : 388
+                    if(ret){
+                        //console.log(JSON.stringify(ret));
+                        switch (ret.result.message.content.extra) {
+                            case 'info':  //接收信息
+                                txt=ret.result.message.content.text;
+                                console.log(JSON.stringify(txt));
+                                obj=JSON.parse(txt);
+                                title=obj.Title;
+                                theme=obj.Theme;
+                                tick=obj.Tick;
+                                if(tick!=''){
+                                    tick=tick.replace('T',' ')+':00';
+                                    var date1 = new Date(tick.replace(/-/g, "/"));//将-转化为/，使用new Date
+                                    var date0 = new Date();//获取当前时间
+                                    tick= date1.getTime() - date0.getTime();//时间差的毫秒数
+
+                                }
+                                //闹铃
+                                api.notification({
+                                    //vibrate:[100, 500, 200, 500, 300, 500, 400, 500],
+                                    //sound:  'widget://res/1.mp3',
+                                    //light:true,
+                                    notify: {
+                                        title:title,
+                                        content:theme
+                                    },
+                                    alarm: {
+                                        time:tick
+                                    }
+                                }, function(ret, err) {
+                                    //console.log(JSON.stringify(ret));
+                                    //console.log(JSON.stringify(err));
+                                    var id = ret.id;
+                                });
+                                if(mailtag==0){
+                                    api.execScript({
+                                        frameName: 'frame0',
+                                        script: 'init()'
+                                    });
+                                }
+
+                                break;
+                            case 'tail':  //状态改变
+                                console.log(mailtag);
+                                if(mailtag==1){
+                                    api.execScript({
+                                        frameName: 'frame0',
+                                        script: 'init()'
+                                    });
+                                }
+                                break;
+                            case 'team':  //多人接收一人办理
+                                if(mailtag==0){
+                                    api.execScript({
+                                        frameName: 'frame0',
+                                        script: 'init()'
+                                    });
+                                }
+                                break;
+                            case 'unit':  //群组改变
+                                alert(ret.result.message.content.text);
+                                $api.setStorage('userPost',null);
+                                api.execScript({
+                                    frameName: 'frame3',
+                                    script: 'init()'
+                                });
+                                break;
+                            default:
+
+                        }
+
+                    }
+                    else{
+                        console.log(JSON.stringify(err));
+                    }
+                });
+                //连接融云 IM 服务器，进行后续各种方法操作前务必要先调用此方法
+                //console.log(JSON.stringify( im ));
+                rong.connect({
+                    token: im
+                    },
+                    function(ret, err){
+                      //console.log(JSON.stringify( ret ));
+                      if(ret){
+                        if (ret.status == 'success'){
+                            api.toast({ msg: 'IM即时通讯云连接成功！' });
+                            //console.log(JSON.stringify( ret ));
+                        }
+                        else{
+                          switch(err.code)
+                          {
+                            case 31003:
+                              alert('服务器不可用');
+                              break;
+                            case 31008:
+                              alert('AppKey 被封禁或已删除');
+                              break;
+                            case 31005:
+                              alert('Token 错误或过期');
+                              break;
+                            case 31004:
+                              alert('Token 无效');
+                              break;
+                            case 31002:
+                              alert('错误的 App Key');
+                              break;
+                            case 33002:
+                              alert('服务端数据库错误');
+                              break;
+                            case 31000:
+                              alert('服务器超时');
+                              break;
+                            case -10000:
+                              alert('未调用 init 方法进行初始化');
+                              break;
+                            case -10002:
+                              alert('输入参数错误');
+                              break;
+                            default:
+                              alert(err.code+'未知错误');
+                          }
+                        }
+                      }
+                });
+            }
+            else{
+                api.toast({ msg:err.code });
+            }
+
+        });
+
+    }
+
+</script>
